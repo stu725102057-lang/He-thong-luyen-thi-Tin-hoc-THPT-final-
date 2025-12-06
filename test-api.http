@@ -1,0 +1,219 @@
+### ============================================
+### TEST API - HỆ THỐNG THI TRẮC NGHIỆM
+### ============================================
+
+@baseUrl = http://localhost:8000/api
+@token = YOUR_TOKEN_HERE
+
+### ============================================
+### AUTHENTICATION
+### ============================================
+
+### 1. ĐĂNG NHẬP - ADMIN
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "admin",
+  "MatKhau": "123456"
+}
+
+### 2. ĐĂNG NHẬP - GIÁO VIÊN
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "giaovien1",
+  "MatKhau": "123456"
+}
+
+### 3. ĐĂNG NHẬP - HỌC SINH
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "hocsinh1",
+  "MatKhau": "123456"
+}
+
+### 4. ĐĂNG NHẬP SAI MẬT KHẨU
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "admin",
+  "MatKhau": "wrongpassword"
+}
+
+### 5. LẤY THÔNG TIN USER (Cần token)
+GET {{baseUrl}}/me
+Authorization: Bearer {{token}}
+
+### 6. ĐĂNG XUẤT (Cần token)
+POST {{baseUrl}}/logout
+Authorization: Bearer {{token}}
+
+### ============================================
+### CÂU HỎI - CRUD
+### ============================================
+
+### 7. LẤY DANH SÁCH CÂU HỎI (Có phân trang)
+GET {{baseUrl}}/cauhoi?per_page=10
+Authorization: Bearer {{token}}
+
+### 8. LẤY DANH SÁCH CÂU HỎI - LỌC THEO NGÂN HÀNG
+GET {{baseUrl}}/cauhoi?MaNH=NH001
+Authorization: Bearer {{token}}
+
+### 9. LẤY DANH SÁCH CÂU HỎI - LỌC THEO ĐỘ KHÓ
+GET {{baseUrl}}/cauhoi?DoKho=De
+Authorization: Bearer {{token}}
+
+### 10. XEM CHI TIẾT CÂU HỎI
+GET {{baseUrl}}/cauhoi/CH001
+Authorization: Bearer {{token}}
+
+### 11. THÊM CÂU HỎI MỚI (Chỉ admin/giaovien)
+POST {{baseUrl}}/cauhoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MaCH": "CH006",
+  "NoiDung": "Phím tắt để sao chép văn bản trong Windows là gì?",
+  "DapAnA": "Ctrl + C",
+  "DapAnB": "Ctrl + V",
+  "DapAnC": "Ctrl + X",
+  "DapAnD": "Ctrl + Z",
+  "DapAn": "A",
+  "DoKho": "De",
+  "MaNH": "NH001"
+}
+
+### 12. CẬP NHẬT CÂU HỎI (Chỉ admin/giaovien)
+PUT {{baseUrl}}/cauhoi/CH006
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Phím tắt để sao chép nội dung trong Windows là gì?",
+  "DoKho": "TB"
+}
+
+### 13. XÓA CÂU HỎI (Chỉ admin/giaovien)
+DELETE {{baseUrl}}/cauhoi/CH006
+Authorization: Bearer {{token}}
+
+### 14. THÊM CÂU HỎI - HỌC SINH (Sẽ bị từ chối)
+POST {{baseUrl}}/cauhoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MaCH": "CH007",
+  "NoiDung": "Test từ học sinh",
+  "DapAnA": "A",
+  "DapAnB": "B",
+  "DapAnC": "C",
+  "DapAnD": "D",
+  "DapAn": "A",
+  "DoKho": "De",
+  "MaNH": "NH001"
+}
+
+### ============================================
+### BÀI THI - NỘP BÀI VÀ CHẤM ĐIỂM
+### ============================================
+
+### 15. NỘP BÀI THI (Học sinh)
+POST {{baseUrl}}/baithi/nop
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS001",
+  "CauTraLoi": [
+    {
+      "MaCH": "CH001",
+      "DapAnChon": "A"
+    },
+    {
+      "MaCH": "CH002",
+      "DapAnChon": "B"
+    },
+    {
+      "MaCH": "CH003",
+      "DapAnChon": "B"
+    },
+    {
+      "MaCH": "CH004",
+      "DapAnChon": "C"
+    },
+    {
+      "MaCH": "CH005",
+      "DapAnChon": "C"
+    }
+  ],
+  "ThoiGianBatDau": "2025-12-06T20:00:00"
+}
+
+### 16. NỘP BÀI - CÓ SAI (4/5 câu đúng - 8 điểm)
+POST {{baseUrl}}/baithi/nop
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS001",
+  "CauTraLoi": [
+    {
+      "MaCH": "CH001",
+      "DapAnChon": "A"
+    },
+    {
+      "MaCH": "CH002",
+      "DapAnChon": "B"
+    },
+    {
+      "MaCH": "CH003",
+      "DapAnChon": "A"
+    },
+    {
+      "MaCH": "CH004",
+      "DapAnChon": "C"
+    },
+    {
+      "MaCH": "CH005",
+      "DapAnChon": "C"
+    }
+  ]
+}
+
+### 17. XEM KẾT QUẢ BÀI LÀM
+GET {{baseUrl}}/baithi/BL00000001/ketqua
+Authorization: Bearer {{token}}
+
+### 18. NỘP BÀI - THIẾU CÂU (3/5 câu)
+POST {{baseUrl}}/baithi/nop
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS001",
+  "CauTraLoi": [
+    {
+      "MaCH": "CH001",
+      "DapAnChon": "A"
+    },
+    {
+      "MaCH": "CH002",
+      "DapAnChon": "B"
+    },
+    {
+      "MaCH": "CH003",
+      "DapAnChon": "B"
+    }
+  ]
+}
