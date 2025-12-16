@@ -1,0 +1,216 @@
+# Test API Thêm & Sửa Người Dùng
+# Sử dụng REST Client extension trong VS Code
+
+### 1. Login as Admin (lấy token)
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "admin",
+  "MatKhau": "admin123"
+}
+
+### Lưu token từ response vào biến
+# @name loginResponse
+# Sau đó copy token vào Authorization header bên dưới
+
+### ============================================
+### THÊM NGƯỜI DÙNG MỚI
+### ============================================
+
+### 2. Thêm học sinh mới
+POST http://localhost:8000/api/users
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "TenDangNhap": "hocsinh001",
+  "Email": "hocsinh001@gmail.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Nguyễn Văn A",
+  "Lop": "12A1",
+  "Truong": "THPT Nguyễn Huệ"
+}
+
+### 3. Thêm giáo viên mới
+POST http://localhost:8000/api/users
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "TenDangNhap": "giaovien001",
+  "Email": "giaovien001@gmail.com",
+  "MatKhau": "123456",
+  "Role": "giaovien",
+  "HoTen": "Trần Thị B",
+  "SoDienThoai": "0912345678",
+  "ChuyenMon": "Tin học"
+}
+
+### 4. Thêm admin mới
+POST http://localhost:8000/api/users
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "TenDangNhap": "admin002",
+  "Email": "admin002@gmail.com",
+  "MatKhau": "admin123",
+  "Role": "admin"
+}
+
+### ============================================
+### SỬA NGƯỜI DÙNG
+### ============================================
+
+### 5. Sửa email học sinh (thay TK001 bằng MaTK thực tế)
+PUT http://localhost:8000/api/users/TK001
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Email": "hocsinh001.new@gmail.com"
+}
+
+### 6. Sửa thông tin đầy đủ của học sinh
+PUT http://localhost:8000/api/users/TK001
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Email": "nguyenvana.updated@gmail.com",
+  "HoTen": "Nguyễn Văn A (Updated)",
+  "Lop": "12A2",
+  "Truong": "THPT Lê Quý Đôn"
+}
+
+### 7. Đổi mật khẩu người dùng
+PUT http://localhost:8000/api/users/TK001
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "MatKhau": "newpassword123"
+}
+
+### 8. Sửa thông tin giáo viên
+PUT http://localhost:8000/api/users/TK002
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Email": "tranthib.updated@gmail.com",
+  "HoTen": "Trần Thị B (Cập nhật)",
+  "SoDienThoai": "0987654321",
+  "ChuyenMon": "Tin học ứng dụng"
+}
+
+### 9. Sửa email admin
+PUT http://localhost:8000/api/users/TK003
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Email": "admin.new@system.com"
+}
+
+### ============================================
+### DANH SÁCH & LỌC
+### ============================================
+
+### 10. Lấy danh sách tất cả người dùng
+GET http://localhost:8000/api/users
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### 11. Lọc theo role - Chỉ học sinh
+GET http://localhost:8000/api/users?Role=hocsinh
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### 12. Lọc theo role - Chỉ giáo viên
+GET http://localhost:8000/api/users?Role=giaovien
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### ============================================
+### KHÓA/MỞ KHÓA TÀI KHOẢN
+### ============================================
+
+### 13. Khóa/Mở khóa người dùng (thay YOUR_MATK bằng MaTK thực tế)
+PATCH http://localhost:8000/api/users/YOUR_MATK/toggle
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### ============================================
+### TEST LỖI - THÊM NGƯỜI DÙNG
+### ============================================
+
+### 14. Test lỗi - Thiếu trường required
+POST http://localhost:8000/api/users
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "TenDangNhap": "test001",
+  "MatKhau": "123456"
+}
+
+### 15. Test lỗi - Email trùng
+POST http://localhost:8000/api/users
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "TenDangNhap": "hocsinh002",
+  "Email": "hocsinh001@gmail.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Test User"
+}
+
+### ============================================
+### TEST LỖI - SỬA NGƯỜI DÙNG
+### ============================================
+
+### 16. Test lỗi - Email không hợp lệ
+PUT http://localhost:8000/api/users/TK001
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Email": "invalid-email-format"
+}
+
+### 17. Test lỗi - Email trùng với người khác
+PUT http://localhost:8000/api/users/TK001
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Email": "giaovien001@gmail.com"
+}
+
+### 18. Test lỗi - Mật khẩu quá ngắn
+PUT http://localhost:8000/api/users/TK001
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "MatKhau": "123"
+}
+
+### 19. Test lỗi - Thử đổi Role (không được phép)
+PUT http://localhost:8000/api/users/TK001
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Role": "giaovien"
+}
+
+### 20. Test lỗi - User không tồn tại
+PUT http://localhost:8000/api/users/TKXXX999
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "Email": "test@example.com"
+}

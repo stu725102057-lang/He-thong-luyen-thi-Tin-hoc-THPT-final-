@@ -1,0 +1,436 @@
+### ===============================================
+### AUTHENTICATION API TESTS - COMPLETE FLOW
+### UR-01: Module Quản lý Chung và Tài khoản
+### ===============================================
+
+@baseUrl = http://localhost:8000/api
+
+### ===============================================
+### 1. UR-01.2: ĐĂNG KÝ TÀI KHOẢN (REGISTER)
+### ===============================================
+
+### 1.1 Đăng ký tài khoản mới (Student self-registration)
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "TenDangNhap": "newstudent123",
+  "Email": "newstudent@example.com",
+  "MatKhau": "password123",
+  "HoTen": "Nguyễn Văn Test",
+  "Lop": "12A1",
+  "Truong": "THPT Nguyễn Huệ"
+}
+
+### Expected: 201 Created
+### Response: {
+###   "success": true,
+###   "message": "Đăng ký tài khoản thành công!",
+###   "data": {
+###     "token": "...",
+###     "user": { ... },
+###     "detail": { "MaHS": "HS...", ... }
+###   }
+### }
+
+### 1.2 Đăng ký với username đã tồn tại (Should fail)
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "TenDangNhap": "newstudent123",
+  "Email": "another@example.com",
+  "MatKhau": "password123",
+  "HoTen": "Test Duplicate"
+}
+
+### Expected: 422 Validation Error
+### Error: "Tên đăng nhập đã tồn tại"
+
+### 1.3 Đăng ký với email đã tồn tại (Should fail)
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "TenDangNhap": "anotheruser",
+  "Email": "newstudent@example.com",
+  "MatKhau": "password123",
+  "HoTen": "Test Duplicate Email"
+}
+
+### Expected: 422 Validation Error
+### Error: "Email đã được sử dụng"
+
+### 1.4 Đăng ký với mật khẩu yếu (< 6 ký tự)
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "TenDangNhap": "weakpass",
+  "Email": "weak@example.com",
+  "MatKhau": "123",
+  "HoTen": "Weak Password Test"
+}
+
+### Expected: 422 Validation Error
+### Error: "Mật khẩu phải có ít nhất 6 ký tự"
+
+### 1.5 Đăng ký với dữ liệu đầy đủ
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "TenDangNhap": "fulldata456",
+  "Email": "fulldata@example.com",
+  "MatKhau": "securepass123",
+  "HoTen": "Trần Thị Full Data",
+  "Lop": "12B2",
+  "Truong": "THPT Lê Quý Đôn"
+}
+
+### Expected: 201 Created
+### Auto-login: Token returned
+
+### ===============================================
+### 2. UR-01.1: ĐĂNG NHẬP (LOGIN) - Already exists
+### ===============================================
+
+### 2.1 Đăng nhập với tài khoản mới đăng ký
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "newstudent123",
+  "MatKhau": "password123"
+}
+
+### Expected: 200 OK
+### Response: Token + User info
+
+### 2.2 Đăng nhập với tài khoản admin
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "admin",
+  "MatKhau": "admin123456"
+}
+
+### Save token for later tests
+@adminToken = {{login.response.body.$.data.token}}
+
+### ===============================================
+### 3. UR-01.3: KHÔI PHỤC MẬT KHẨU (FORGOT PASSWORD)
+### ===============================================
+
+### 3.1 Gửi yêu cầu khôi phục với email hợp lệ
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+
+{
+  "Email": "newstudent@example.com"
+}
+
+### Expected: 200 OK
+### Response: {
+###   "success": true,
+###   "message": "Mã khôi phục mật khẩu đã được gửi đến email của bạn",
+###   "reset_code": 123456  (DEV ONLY - để test)
+### }
+### CHECK LOG: storage/logs/laravel.log để lấy mã
+
+### 3.2 Gửi yêu cầu với email không tồn tại (Should fail)
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+
+{
+  "Email": "notexist@example.com"
+}
+
+### Expected: 422 Validation Error
+### Error: "Email không tồn tại trong hệ thống"
+
+### 3.3 Gửi yêu cầu với email không đúng format
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+
+{
+  "Email": "invalid-email-format"
+}
+
+### Expected: 422 Validation Error
+### Error: "Email không đúng định dạng"
+
+### 3.4 Gửi yêu cầu khôi phục lần 2 (Overwrite token)
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+
+{
+  "Email": "newstudent@example.com"
+}
+
+### Expected: 200 OK
+### Old token will be replaced
+
+### ===============================================
+### 4. UR-01.3: ĐẶT LẠI MẬT KHẨU (RESET PASSWORD)
+### ===============================================
+
+### 4.1 Đặt lại mật khẩu với mã hợp lệ
+### NOTE: Lấy reset_code từ response của forgot-password (hoặc log)
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "Email": "newstudent@example.com",
+  "ResetCode": "123456",
+  "MatKhauMoi": "newpassword123",
+  "XacNhanMatKhau": "newpassword123"
+}
+
+### Expected: 200 OK
+### Response: {
+###   "success": true,
+###   "message": "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới"
+### }
+
+### 4.2 Đặt lại với mã không đúng (Should fail)
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "Email": "newstudent@example.com",
+  "ResetCode": "999999",
+  "MatKhauMoi": "anotherpass",
+  "XacNhanMatKhau": "anotherpass"
+}
+
+### Expected: 400 Bad Request
+### Error: "Mã khôi phục không đúng"
+
+### 4.3 Đặt lại với xác nhận mật khẩu không khớp
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "Email": "newstudent@example.com",
+  "ResetCode": "123456",
+  "MatKhauMoi": "newpassword",
+  "XacNhanMatKhau": "differentpassword"
+}
+
+### Expected: 422 Validation Error
+### Error: "Xác nhận mật khẩu không khớp"
+
+### 4.4 Đặt lại với mật khẩu yếu (< 6 ký tự)
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "Email": "newstudent@example.com",
+  "ResetCode": "123456",
+  "MatKhauMoi": "123",
+  "XacNhanMatKhau": "123"
+}
+
+### Expected: 422 Validation Error
+### Error: "Mật khẩu phải có ít nhất 6 ký tự"
+
+### 4.5 Sử dụng token đã dùng rồi (Should fail - token bị xóa)
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "Email": "newstudent@example.com",
+  "ResetCode": "123456",
+  "MatKhauMoi": "tryagain",
+  "XacNhanMatKhau": "tryagain"
+}
+
+### Expected: 404 Not Found
+### Error: "Không tìm thấy yêu cầu khôi phục mật khẩu cho email này"
+
+### ===============================================
+### 5. VERIFY MẬT KHẨU MỚI (LOGIN WITH NEW PASSWORD)
+### ===============================================
+
+### 5.1 Đăng nhập với mật khẩu cũ (Should fail)
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "newstudent123",
+  "MatKhau": "password123"
+}
+
+### Expected: 401 Unauthorized
+### Error: "Tên đăng nhập hoặc mật khẩu không đúng"
+
+### 5.2 Đăng nhập với mật khẩu mới (Should work)
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "newstudent123",
+  "MatKhau": "newpassword123"
+}
+
+### Expected: 200 OK
+### Response: Token + User info
+
+### ===============================================
+### 6. INTEGRATION TESTS
+### ===============================================
+
+### 6.1 Full Flow: Register → Forgot → Reset → Login
+### Step 1: Register new account
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "TenDangNhap": "flowtest123",
+  "Email": "flowtest@example.com",
+  "MatKhau": "initialpass",
+  "HoTen": "Flow Test User"
+}
+
+### Step 2: Request password reset
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+
+{
+  "Email": "flowtest@example.com"
+}
+
+### Step 3: Reset password (get code from log)
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "Email": "flowtest@example.com",
+  "ResetCode": "GET_FROM_LOG",
+  "MatKhauMoi": "resetpass123",
+  "XacNhanMatKhau": "resetpass123"
+}
+
+### Step 4: Login with new password
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "TenDangNhap": "flowtest123",
+  "MatKhau": "resetpass123"
+}
+
+### ===============================================
+### 7. SECURITY TESTS
+### ===============================================
+
+### 7.1 Verify password is hashed (Check database)
+### Query: SELECT MatKhau FROM TaiKhoan WHERE TenDangNhap = 'newstudent123';
+### Expected: $2y$10$... (BCrypt hash, not plain text)
+
+### 7.2 Verify reset token is hashed (Check password_resets table)
+### Query: SELECT token FROM password_resets WHERE email = 'newstudent@example.com';
+### Expected: $2y$10$... (BCrypt hash)
+
+### 7.3 Verify token expiration (15 minutes)
+### Wait 16 minutes after forgot-password, then try reset
+### Expected: 400 "Mã khôi phục đã hết hạn"
+
+### 7.4 Verify one-time use token
+### Use same reset code twice
+### Expected: First success, second fail (404 token not found)
+
+### ===============================================
+### 8. EDGE CASES
+### ===============================================
+
+### 8.1 Register với fields bị thiếu
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "TenDangNhap": "incomplete"
+}
+
+### Expected: 422 with multiple validation errors
+
+### 8.2 Forgot password với empty email
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+
+{
+  "Email": ""
+}
+
+### Expected: 422 "Email không được để trống"
+
+### 8.3 Reset password với code không đúng format (not 6 digits)
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "Email": "test@example.com",
+  "ResetCode": "abc123",
+  "MatKhauMoi": "newpass",
+  "XacNhanMatKhau": "newpass"
+}
+
+### Expected: 422 "Mã khôi phục phải là 6 chữ số"
+
+### ===============================================
+### 9. PERFORMANCE TESTS (Manual)
+### ===============================================
+
+### 9.1 Multiple registrations (Check auto-increment IDs)
+### Register 5 accounts and verify:
+### - MaTK: TK001, TK002, TK003, TK004, TK005
+### - MaHS: HS001, HS002, HS003, HS004, HS005
+
+### 9.2 Concurrent forgot-password requests
+### Send multiple requests for same email
+### Expected: Last request overwrites previous token
+
+### ===============================================
+### SUMMARY
+### ===============================================
+
+### ✅ Implemented Features:
+### - UR-01.1: Login (Already existed)
+### - UR-01.2: Self-registration for students
+### - UR-01.3: Forgot password (6-digit code)
+### - UR-01.3: Reset password with token
+### - Auto-generation: MaTK, MaHS
+### - Password hashing (BCrypt)
+### - Token expiration (15 minutes)
+### - One-time use tokens
+### - Auto-login after registration
+
+### ✅ Security Features:
+### - Password hashing (UR-05.3)
+### - Token hashing
+### - Token expiration
+### - One-time token usage
+### - Email validation
+### - Password strength validation
+
+### 📝 TODO:
+### - Configure SMTP for real email sending
+### - Add rate limiting (prevent spam)
+### - Add email templates
+### - Add CAPTCHA for forgot-password
+### - Frontend UI for register/forgot/reset
+
+### 🧪 Test Coverage:
+### - ✅ Valid registration
+### - ✅ Duplicate username/email
+### - ✅ Weak password
+### - ✅ Valid forgot password
+### - ✅ Invalid email
+### - ✅ Valid reset
+### - ✅ Invalid reset code
+### - ✅ Password mismatch
+### - ✅ Token expiration
+### - ✅ One-time token
+### - ✅ Login with new password

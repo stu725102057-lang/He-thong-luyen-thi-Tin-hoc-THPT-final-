@@ -1,0 +1,572 @@
+### ===============================================
+### USER MANAGEMENT WITH DB::TRANSACTION
+### Complete CRUD with Data Integrity
+### ===============================================
+
+@baseUrl = http://localhost:8000/api
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+
+### ===============================================
+### 1. INDEX - Get List of Users with Filtering
+### ===============================================
+
+### 1.1 Get all users
+GET {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+
+### 1.2 Filter by Role = hocsinh (Students only)
+GET {{baseUrl}}/users?Role=hocsinh
+Authorization: Bearer {{adminToken}}
+
+### 1.3 Filter by Role = giaovien (Teachers only)
+GET {{baseUrl}}/users?Role=giaovien
+Authorization: Bearer {{adminToken}}
+
+### 1.4 Filter by Role = admin (Admins only)
+GET {{baseUrl}}/users?Role=admin
+Authorization: Bearer {{adminToken}}
+
+### Expected Response Format:
+### {
+###   "success": true,
+###   "message": "Lấy danh sách người dùng thành công",
+###   "data": [
+###     {
+###       "MaTK": "TK001",
+###       "TenDangNhap": "student1",
+###       "Email": "student1@example.com",
+###       "Role": "hocsinh",
+###       "TrangThai": true,
+###       "ThongTinHocSinh": {
+###         "MaHS": "HS001",
+###         "HoTen": "Nguyen Van A",
+###         "Lop": "10A1",
+###         "Truong": "THPT ABC"
+###       }
+###     }
+###   ],
+###   "total": 1
+### }
+
+### ===============================================
+### 2. STORE - Create New User (with DB Transaction)
+### Ensures TaiKhoan and HocSinh/GiaoVien created atomically
+### ===============================================
+
+### 2.1 Create Student (hocsinh)
+### Transaction creates BOTH TaiKhoan AND HocSinh records
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student001",
+  "Email": "student001@school.edu.vn",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": "Nguyen Van A"
+}
+
+### Expected: 201 Created
+### {
+###   "success": true,
+###   "message": "Tạo người dùng thành công",
+###   "data": {
+###     "TaiKhoan": {
+###       "MaTK": "TK001",  // Auto-generated
+###       "TenDangNhap": "student001",
+###       "Email": "student001@school.edu.vn",
+###       "Role": "hocsinh",
+###       "TrangThai": true
+###     },
+###     "RoleData": {
+###       "MaHS": "HS001",  // Auto-generated
+###       "MaTK": "TK001",
+###       "HoTen": "Nguyen Van A"
+###     }
+###   }
+### }
+
+### 2.2 Create Student with full details
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student002",
+  "Email": "student002@school.edu.vn",
+  "MatKhau": "secure123",
+  "Role": "hocsinh",
+  "HoTen": "Tran Thi B",
+  "Lop": "10A1",
+  "Truong": "THPT Nguyen Hue"
+}
+
+### 2.3 Create Teacher (giaovien)
+### Transaction creates BOTH TaiKhoan AND GiaoVien records
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "teacher001",
+  "Email": "teacher001@school.edu.vn",
+  "MatKhau": "teachpass123",
+  "Role": "giaovien",
+  "HoTen": "Le Van C"
+}
+
+### Expected: GiaoVien record created with MaGV auto-generated
+
+### 2.4 Create Teacher with full details
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "teacher002",
+  "Email": "teacher002@school.edu.vn",
+  "MatKhau": "teach456",
+  "Role": "giaovien",
+  "HoTen": "Pham Thi D",
+  "SoDienThoai": "0123456789",
+  "ChuyenMon": "Tin học"
+}
+
+### 2.5 Create Admin
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "admin002",
+  "Email": "admin002@school.edu.vn",
+  "MatKhau": "admin123456",
+  "Role": "admin"
+}
+
+### ===============================================
+### 3. VALIDATION TESTS (Transaction will rollback on error)
+### ===============================================
+
+### 3.1 Test missing required field (TenDangNhap)
+### Transaction should NOT create any records
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "test@example.com",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": "Test User"
+}
+
+### Expected: 422 Validation Error
+### NO records created in database (transaction rollback)
+
+### 3.2 Test duplicate TenDangNhap
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student001",
+  "Email": "another@example.com",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": "Another Student"
+}
+
+### Expected: 422 "Tên đăng nhập đã tồn tại"
+
+### 3.3 Test duplicate Email
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "uniqueuser",
+  "Email": "student001@school.edu.vn",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": "Unique User"
+}
+
+### Expected: 422 "Email đã được sử dụng"
+
+### 3.4 Test missing HoTen for student (required)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student999",
+  "Email": "student999@example.com",
+  "MatKhau": "password123",
+  "Role": "hocsinh"
+}
+
+### Expected: 422 "Họ tên không được để trống đối với học sinh và giáo viên"
+
+### 3.5 Test invalid Role
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "testuser",
+  "Email": "test@example.com",
+  "MatKhau": "password123",
+  "Role": "superadmin",
+  "HoTen": "Test User"
+}
+
+### Expected: 422 "Role phải là admin, giaovien hoặc hocsinh"
+
+### ===============================================
+### 4. UPDATE - Update User (with DB Transaction)
+### Updates BOTH TaiKhoan AND related HocSinh/GiaoVien
+### ===============================================
+
+### 4.1 Update Student Email only
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "newemail001@school.edu.vn"
+}
+
+### Expected: Only TaiKhoan.Email updated
+### Transaction ensures consistency
+
+### 4.2 Update Student HoTen (updates HocSinh table)
+### Transaction updates BOTH tables atomically
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "HoTen": "Nguyen Van A (Updated)"
+}
+
+### Expected Response:
+### {
+###   "success": true,
+###   "message": "Cập nhật người dùng thành công",
+###   "data": {
+###     "MaTK": "TK001",
+###     "Email": "...",
+###     "HocSinh": {
+###       "MaHS": "HS001",
+###       "HoTen": "Nguyen Van A (Updated)"  // Updated!
+###     }
+###   }
+### }
+
+### 4.3 Update Student multiple fields
+### Transaction updates TaiKhoan AND HocSinh together
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "updated@school.edu.vn",
+  "HoTen": "Nguyen Van A - Final",
+  "Lop": "10A2",
+  "Truong": "THPT Le Quy Don"
+}
+
+### Expected: 
+### - TaiKhoan.Email updated
+### - HocSinh.HoTen, HocSinh.Lop, HocSinh.Truong updated
+### - All in single transaction
+
+### 4.4 Update Teacher information
+### Transaction updates TaiKhoan AND GiaoVien together
+PUT {{baseUrl}}/users/TK002
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "HoTen": "Le Van C (Updated)",
+  "SoDienThoai": "0987654321",
+  "ChuyenMon": "Toán học"
+}
+
+### Expected:
+### - GiaoVien.HoTen updated
+### - GiaoVien.SoDienThoai updated
+### - GiaoVien.ChuyenMon updated
+
+### 4.5 Update password (will be hashed)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "MatKhau": "newpassword123"
+}
+
+### Expected: Password hashed before saving
+
+### 4.6 Update TrangThai (status)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TrangThai": false
+}
+
+### Expected: User account locked
+
+### 4.7 Try to change Role (should fail)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Role": "giaovien"
+}
+
+### Expected: 400 "Không thể thay đổi Role của người dùng..."
+### Transaction rolled back (no changes made)
+
+### 4.8 Update with validation error (transaction rollback)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "invalid-email-format"
+}
+
+### Expected: 422 Validation error
+### NO changes made to database (transaction rollback)
+
+### ===============================================
+### 5. TOGGLE STATUS - Lock/Unlock Account
+### ===============================================
+
+### 5.1 Lock student account
+POST {{baseUrl}}/users/TK001/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### Expected: 200
+### {
+###   "success": true,
+###   "message": "Đã khóa tài khoản thành công",
+###   "data": {
+###     "MaTK": "TK001",
+###     "TrangThai": false,
+###     "StatusText": "Đã khóa"
+###   }
+### }
+
+### 5.2 Unlock student account (toggle again)
+POST {{baseUrl}}/users/TK001/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### Expected: 200
+### {
+###   "success": true,
+###   "message": "Đã mở khóa tài khoản thành công",
+###   "data": {
+###     "TrangThai": true,
+###     "StatusText": "Hoạt động"
+###   }
+### }
+
+### 5.3 Try to lock admin account (should fail - protection)
+POST {{baseUrl}}/users/TK999/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### Expected: 400 "Không thể khóa tài khoản quản trị viên"
+
+### 5.4 Toggle non-existent user
+POST {{baseUrl}}/users/TK9999/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### Expected: 404 "Không tìm thấy người dùng"
+
+### ===============================================
+### 6. TRANSACTION INTEGRITY TESTS
+### Verify rollback on errors
+### ===============================================
+
+### 6.1 Create with invalid data (should rollback)
+### Neither TaiKhoan nor HocSinh should be created
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "rollback_test",
+  "Email": "invalid-email",
+  "MatKhau": "12345",
+  "Role": "hocsinh",
+  "HoTen": "Rollback Test"
+}
+
+### Verify in database:
+### - NO TaiKhoan record created
+### - NO HocSinh record created
+### Transaction rolled back successfully
+
+### 6.2 Update with error (should rollback)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "duplicate@school.edu.vn",
+  "HoTen": "Should Not Update"
+}
+
+### If email is duplicate:
+### - TaiKhoan.Email NOT updated
+### - HocSinh.HoTen NOT updated
+### Transaction rolled back (all or nothing)
+
+### ===============================================
+### 7. VERIFY DATA INTEGRITY
+### Check that related records exist
+### ===============================================
+
+### 7.1 Create student and verify both records exist
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "integrity_test",
+  "Email": "integrity@test.com",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": "Integrity Test User"
+}
+
+### Then check database:
+### SELECT * FROM TaiKhoan WHERE TenDangNhap = 'integrity_test';
+### SELECT * FROM HocSinh WHERE MaTK = 'TK_RETURNED_VALUE';
+### Both should exist with matching MaTK
+
+### 7.2 Update student and verify both tables updated
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "verify@test.com",
+  "HoTen": "Verified Name"
+}
+
+### Then check database:
+### TaiKhoan.Email should be 'verify@test.com'
+### HocSinh.HoTen should be 'Verified Name'
+### Both updated in same transaction
+
+### ===============================================
+### 8. EDGE CASES & ERROR HANDLING
+### ===============================================
+
+### 8.1 Update non-existent user
+PUT {{baseUrl}}/users/TK9999
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "test@example.com"
+}
+
+### Expected: 404 "Không tìm thấy người dùng"
+
+### 8.2 Create with empty HoTen for student
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "emptyname",
+  "Email": "empty@test.com",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": ""
+}
+
+### Expected: Validation error
+
+### 8.3 Update with empty object (no changes)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{}
+
+### Expected: 200 Success (no changes made)
+
+### ===============================================
+### 9. RESPONSE FORMAT VERIFICATION
+### ===============================================
+
+### 9.1 Successful create response
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "format_test",
+  "Email": "format@test.com",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": "Format Test"
+}
+
+### Expected format:
+### {
+###   "success": true,
+###   "message": "...",
+###   "data": {
+###     "TaiKhoan": {...},
+###     "RoleData": {...}
+###   }
+### }
+
+### 9.2 Validation error response
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "test"
+}
+
+### Expected format:
+### {
+###   "success": false,
+###   "message": "Dữ liệu không hợp lệ",
+###   "errors": {
+###     "Email": [...],
+###     "MatKhau": [...],
+###     ...
+###   }
+### }
+
+### ===============================================
+### END OF TESTS
+### ===============================================
+
+### KEY FEATURES DEMONSTRATED:
+### ✅ DB::transaction used in store() - creates TaiKhoan + HocSinh/GiaoVien atomically
+### ✅ DB::transaction used in update() - updates both tables atomically
+### ✅ Rollback on validation errors (no partial data)
+### ✅ Rollback on any exception (data integrity maintained)
+### ✅ Auto-generated IDs: MaTK, MaHS, MaGV
+### ✅ Password hashing on create and update
+### ✅ Role-based record creation (hocsinh→HocSinh, giaovien→GiaoVien)
+### ✅ Update related tables (HocSinh.HoTen, GiaoVien.HoTen, etc.)
+### ✅ Toggle status with protection for admin accounts
+### ✅ Comprehensive validation with clear error messages
+### ✅ Consistent JSON response format

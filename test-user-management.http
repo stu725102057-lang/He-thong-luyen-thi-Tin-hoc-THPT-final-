@@ -1,0 +1,638 @@
+### ===============================================
+### TEST USER MANAGEMENT (UR-04.1)
+### UserController - Admin Only CRUD Operations
+### ===============================================
+
+@baseUrl = http://localhost:8000/api
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+@teacherToken = YOUR_TEACHER_TOKEN_HERE
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+### ===============================================
+### 1. GET ALL USERS (index)
+### ===============================================
+
+### 1.1 Get all users (Admin)
+GET {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+
+### 1.2 Filter by Role = hocsinh (Students)
+GET {{baseUrl}}/users?Role=hocsinh
+Authorization: Bearer {{adminToken}}
+
+### 1.3 Filter by Role = giaovien (Teachers)
+GET {{baseUrl}}/users?Role=giaovien
+Authorization: Bearer {{adminToken}}
+
+### 1.4 Filter by Role = admin (Administrators)
+GET {{baseUrl}}/users?Role=admin
+Authorization: Bearer {{adminToken}}
+
+### 1.5 Test invalid Role filter
+GET {{baseUrl}}/users?Role=invalid
+Authorization: Bearer {{adminToken}}
+
+### 1.6 Teacher tries to access (should fail - 403)
+GET {{baseUrl}}/users
+Authorization: Bearer {{teacherToken}}
+
+### 1.7 Student tries to access (should fail - 403)
+GET {{baseUrl}}/users
+Authorization: Bearer {{studentToken}}
+
+### ===============================================
+### 2. CREATE NEW USER (store)
+### Password hashing (UR-05.3)
+### Auto-create HocSinh/GiaoVien records
+### ===============================================
+
+### 2.1 Create new Student (HocSinh)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "nguyenvana",
+  "Email": "nguyenvana@example.com",
+  "MatKhau": "password123",
+  "Role": "hocsinh",
+  "HoTen": "Nguyen Van A",
+  "Lop": "10A1",
+  "Truong": "THPT Nguyen Hue"
+}
+
+### 2.2 Create new Teacher (GiaoVien)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "tranthib",
+  "Email": "tranthib@example.com",
+  "MatKhau": "teacher123",
+  "Role": "giaovien",
+  "HoTen": "Tran Thi B",
+  "SoDienThoai": "0123456789",
+  "ChuyenMon": "Tin học"
+}
+
+### 2.3 Create new Admin (QuanTriVien)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "admin2",
+  "Email": "admin2@example.com",
+  "MatKhau": "admin123456",
+  "Role": "admin"
+}
+
+### 2.4 Create student with minimum info
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student001",
+  "Email": "student001@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Test Student"
+}
+
+### 2.5 Create teacher with full info
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "teacher001",
+  "Email": "teacher001@example.com",
+  "MatKhau": "teach123",
+  "Role": "giaovien",
+  "HoTen": "Teacher Full Info",
+  "SoDienThoai": "0987654321",
+  "ChuyenMon": "Toán học"
+}
+
+### ===============================================
+### 3. VALIDATION TESTS (store)
+### ===============================================
+
+### 3.1 Test missing TenDangNhap
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "test@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Test User"
+}
+
+### 3.2 Test duplicate TenDangNhap
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "nguyenvana",
+  "Email": "another@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Another User"
+}
+
+### 3.3 Test duplicate Email
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "uniqueuser",
+  "Email": "nguyenvana@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Unique User"
+}
+
+### 3.4 Test invalid email format
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "testuser2",
+  "Email": "invalid-email",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Test User"
+}
+
+### 3.5 Test password too short
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "testuser3",
+  "Email": "test3@example.com",
+  "MatKhau": "12345",
+  "Role": "hocsinh",
+  "HoTen": "Test User"
+}
+
+### 3.6 Test invalid Role
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "testuser4",
+  "Email": "test4@example.com",
+  "MatKhau": "123456",
+  "Role": "superadmin",
+  "HoTen": "Test User"
+}
+
+### 3.7 Test missing HoTen for hocsinh (should fail)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "testuser5",
+  "Email": "test5@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh"
+}
+
+### 3.8 Test missing HoTen for giaovien (should fail)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "testuser6",
+  "Email": "test6@example.com",
+  "MatKhau": "123456",
+  "Role": "giaovien"
+}
+
+### 3.9 Test missing required fields
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "testuser7"
+}
+
+### ===============================================
+### 4. UPDATE USER (update)
+### ===============================================
+
+### 4.1 Update email only
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "newemail@example.com"
+}
+
+### 4.2 Update status (TrangThai)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TrangThai": false
+}
+
+### 4.3 Update password
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "MatKhau": "newpassword123"
+}
+
+### 4.4 Update multiple fields
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "updated@example.com",
+  "TrangThai": true,
+  "MatKhau": "updated123"
+}
+
+### 4.5 Try to change Role (should fail)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Role": "admin"
+}
+
+### 4.6 Test update non-existent user
+PUT {{baseUrl}}/users/TK999
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "test@example.com"
+}
+
+### 4.7 Test invalid email format
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "invalid-email-format"
+}
+
+### 4.8 Test duplicate email
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "Email": "nguyenvana@example.com"
+}
+
+### ===============================================
+### 5. TOGGLE STATUS (Lock/Unlock Account)
+### ===============================================
+
+### 5.1 Toggle status - Lock account
+POST {{baseUrl}}/users/TK001/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### 5.2 Toggle status - Unlock account (run again)
+POST {{baseUrl}}/users/TK001/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### 5.3 Toggle status - Student account
+POST {{baseUrl}}/users/TK002/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### 5.4 Toggle status - Teacher account
+POST {{baseUrl}}/users/TK003/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### 5.5 Try to toggle admin account (should fail)
+POST {{baseUrl}}/users/TK001/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### 5.6 Test non-existent user
+POST {{baseUrl}}/users/TK999/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### ===============================================
+### 6. PERMISSION TESTS
+### Test with different user roles
+### ===============================================
+
+### 6.1 Teacher tries to create user (should fail - 403)
+POST {{baseUrl}}/users
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "unauthorized",
+  "Email": "unauth@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Unauthorized Test"
+}
+
+### 6.2 Teacher tries to update user (should fail - 403)
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "Email": "teacher-update@example.com"
+}
+
+### 6.3 Teacher tries to toggle status (should fail - 403)
+POST {{baseUrl}}/users/TK001/toggle-status
+Authorization: Bearer {{teacherToken}}
+
+### 6.4 Student tries to view users (should fail - 403)
+GET {{baseUrl}}/users
+Authorization: Bearer {{studentToken}}
+
+### 6.5 Student tries to create user (should fail - 403)
+POST {{baseUrl}}/users
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student-create",
+  "Email": "student@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Student Test"
+}
+
+### 6.6 Unauthenticated request (no token)
+GET {{baseUrl}}/users
+
+### ===============================================
+### 7. PASSWORD HASHING VERIFICATION (UR-05.3)
+### ===============================================
+
+### 7.1 Create user and verify password is hashed
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "hashtest",
+  "Email": "hashtest@example.com",
+  "MatKhau": "plainpassword",
+  "Role": "hocsinh",
+  "HoTen": "Hash Test User"
+}
+
+### 7.2 Update password and verify it's hashed
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "MatKhau": "newplainpassword"
+}
+
+### Note: Check database to verify MatKhau is hashed (starts with $2y$)
+
+### ===============================================
+### 8. AUTO-GENERATED IDs VERIFICATION
+### ===============================================
+
+### 8.1 Create multiple students and verify MaHS generation
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student_auto1",
+  "Email": "auto1@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Auto Student 1"
+}
+
+### 8.2 Create another student (should get HS002, HS003, etc.)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "student_auto2",
+  "Email": "auto2@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Auto Student 2"
+}
+
+### 8.3 Create multiple teachers and verify MaGV generation
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "teacher_auto1",
+  "Email": "tauto1@example.com",
+  "MatKhau": "123456",
+  "Role": "giaovien",
+  "HoTen": "Auto Teacher 1"
+}
+
+### 8.4 Create another teacher (should get GV002, GV003, etc.)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "teacher_auto2",
+  "Email": "tauto2@example.com",
+  "MatKhau": "123456",
+  "Role": "giaovien",
+  "HoTen": "Auto Teacher 2"
+}
+
+### ===============================================
+### 9. RELATIONSHIP VERIFICATION
+### Verify HocSinh/GiaoVien records created
+### ===============================================
+
+### 9.1 Get all students with details
+GET {{baseUrl}}/users?Role=hocsinh
+Authorization: Bearer {{adminToken}}
+
+### Expected response should include:
+### - TaiKhoan data (MaTK, TenDangNhap, Email, Role)
+### - ThongTinHocSinh data (MaHS, HoTen, Lop, Truong)
+
+### 9.2 Get all teachers with details
+GET {{baseUrl}}/users?Role=giaovien
+Authorization: Bearer {{adminToken}}
+
+### Expected response should include:
+### - TaiKhoan data (MaTK, TenDangNhap, Email, Role)
+### - ThongTinGiaoVien data (MaGV, HoTen, SoDienThoai, ChuyenMon)
+
+### 9.3 Get all admins with details
+GET {{baseUrl}}/users?Role=admin
+Authorization: Bearer {{adminToken}}
+
+### Expected response should include:
+### - TaiKhoan data (MaTK, TenDangNhap, Email, Role)
+### - ThongTinQuanTriVien data (MaQTV)
+
+### ===============================================
+### 10. TRANSACTION VERIFICATION
+### Test rollback on error
+### ===============================================
+
+### 10.1 Create user with invalid data (should rollback)
+### This should create neither TaiKhoan nor HocSinh
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "rollback_test",
+  "Email": "invalid-email",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Rollback Test"
+}
+
+### Verify: No TK record and no HS record should be created
+
+### ===============================================
+### 11. EDGE CASES
+### ===============================================
+
+### 11.1 Create user with empty strings
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "",
+  "Email": "",
+  "MatKhau": "",
+  "Role": "hocsinh",
+  "HoTen": ""
+}
+
+### 11.2 Create user with null values
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": null,
+  "Email": null,
+  "MatKhau": null,
+  "Role": null,
+  "HoTen": null
+}
+
+### 11.3 Toggle status multiple times rapidly
+POST {{baseUrl}}/users/TK002/toggle-status
+Authorization: Bearer {{adminToken}}
+
+### 11.4 Update with no changes
+PUT {{baseUrl}}/users/TK001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{}
+
+### 11.5 Create user with very long password
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "longpasstest",
+  "Email": "longpass@example.com",
+  "MatKhau": "ThisIsAVeryLongPasswordThatExceedsNormalLengthButShouldStillBeHashedCorrectly123456789",
+  "Role": "hocsinh",
+  "HoTen": "Long Password Test"
+}
+
+### ===============================================
+### 12. RESPONSE FORMAT VERIFICATION
+### All responses should have consistent format
+### ===============================================
+
+### 12.1 Verify success response format (create)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "formattest",
+  "Email": "format@example.com",
+  "MatKhau": "123456",
+  "Role": "hocsinh",
+  "HoTen": "Format Test"
+}
+
+### Expected format:
+### {
+###   "success": true,
+###   "message": "...",
+###   "data": {
+###     "TaiKhoan": {...},
+###     "RoleData": {...}
+###   }
+### }
+
+### 12.2 Verify error response format (validation)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "TenDangNhap": "test"
+}
+
+### Expected format:
+### {
+###   "success": false,
+###   "message": "Dữ liệu không hợp lệ",
+###   "errors": {...}
+### }
+
+### ===============================================
+### END OF TESTS
+### ===============================================
+
+### SUMMARY OF EXPECTED RESULTS:
+### ✅ Admin can perform all operations
+### ❌ Teacher/Student cannot access user management (403)
+### ✅ Passwords are hashed (not stored as plain text)
+### ✅ Creating hocsinh also creates HocSinh record
+### ✅ Creating giaovien also creates GiaoVien record
+### ✅ Creating admin also creates QuanTriVien record
+### ✅ Auto-generated IDs: TK001, HS001, GV001, QTV001, etc.
+### ✅ Toggle status works (except for admin accounts)
+### ✅ Role cannot be changed after creation
+### ✅ Validation catches all invalid inputs
+### ✅ Transactions rollback on errors
+### ✅ Consistent JSON response format

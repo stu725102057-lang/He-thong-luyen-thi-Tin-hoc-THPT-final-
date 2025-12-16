@@ -27,4 +27,18 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    /**
+     * Convert an authentication exception into a response.
+     * 
+     * Override để trả về JSON thay vì redirect về route 'login'
+     */
+    protected function unauthenticated($request, \Illuminate\Auth\AuthenticationException $exception)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthenticated.',
+            'error' => 'You must be logged in to access this resource.'
+        ], 401);
+    }
 }

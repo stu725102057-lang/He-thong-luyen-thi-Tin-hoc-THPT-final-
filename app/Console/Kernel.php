@@ -12,7 +12,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Tự động backup database mỗi ngày lúc 2:00 AM (UR-04.4)
+        $schedule->command('backup:auto')
+                 ->dailyAt('02:00')
+                 ->timezone('Asia/Ho_Chi_Minh')
+                 ->appendOutputTo(storage_path('logs/backup.log'));
+        
+        // Có thể thêm backup mỗi 12 giờ nếu cần
+        // $schedule->command('backup:auto')->twiceDaily(2, 14);
     }
 
     /**

@@ -1,0 +1,47 @@
+/* Footer Styles */
+footer {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+}
+
+footer h5, footer h6 {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+footer a {
+    transition: all 0.3s ease;
+}
+
+footer a:hover {
+    color: #fff !important;
+    transform: translateX(5px);
+}
+
+footer .bi {
+    transition: all 0.3s ease;
+}
+
+footer a:hover .bi {
+    transform: scale(1.2);
+}
+
+/* Body with footer */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#app {
+    flex: 1;
+}
+
+/* Improved card designs */
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}

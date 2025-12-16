@@ -13,14 +13,25 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * Ánh xạ đến bảng taikhoan thay vì users
+     */
+    protected $table = 'taikhoan';
+    protected $primaryKey = 'MaTK';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'MaTK',
+        'TenDangNhap',
+        'MatKhau',
+        'Email',
+        'Role',
+        'TrangThai',
     ];
 
     /**
@@ -29,7 +40,7 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $hidden = [
-        'password',
+        'MatKhau',
         'remember_token',
     ];
 
@@ -39,7 +50,15 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'TrangThai' => 'boolean',
+        'LanDangNhapCuoi' => 'datetime',
     ];
+
+    /**
+     * Get the password for the user.
+     */
+    public function getAuthPassword()
+    {
+        return $this->MatKhau;
+    }
 }

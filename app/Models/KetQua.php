@@ -76,4 +76,44 @@ class KetQua extends Model
     {
         return $this->belongsTo(BaiLam::class, 'MaBaiLam', 'MaBaiLam');
     }
+
+    // ============================================
+    // METHODS THEO BIỂU ĐỒ LỚP
+    // ============================================
+
+    /**
+     * + HienThiKetQua()
+     */
+    public function hienThiKetQua()
+    {
+        return [
+            'ma_ket_qua' => $this->MaKQ,
+            'diem' => $this->Diem,
+            'so_cau_dung' => $this->SoCauDung,
+            'so_cau_sai' => $this->SoCauSai,
+            'so_cau_khong_lam' => $this->SoCauKhongLam,
+            'thoi_gian_hoan_thanh' => $this->ThoiGianHoanThanh,
+            'hoc_sinh' => $this->hocSinh,
+            'de_thi' => $this->deThi,
+        ];
+    }
+
+    /**
+     * + XuatSaoCao()
+     */
+    public function xuatSaoCao()
+    {
+        return [
+            'ma_ket_qua' => $this->MaKQ,
+            'diem' => $this->Diem,
+            'so_cau_dung' => $this->SoCauDung,
+            'so_cau_sai' => $this->SoCauSai,
+            'so_cau_khong_lam' => $this->SoCauKhongLam,
+            'tong_cau' => $this->SoCauDung + $this->SoCauSai + $this->SoCauKhongLam,
+            'ti_le_dung' => round(($this->SoCauDung / ($this->SoCauDung + $this->SoCauSai + $this->SoCauKhongLam)) * 100, 2) . '%',
+            'thoi_gian' => $this->ThoiGianHoanThanh->format('d/m/Y H:i:s'),
+            'hoc_sinh' => $this->hocSinh->HoTen ?? 'N/A',
+            'de_thi' => $this->deThi->TenDe ?? 'N/A',
+        ];
+    }
 }

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Download Backup</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .result { margin: 20px 0; padding: 10px; background: #f0f0f0; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Download Backup</h1>
+    
+    <h2>Test 1: Direct Download Link</h2>
+    <p>Token của bạn (copy từ localStorage):</p>
+    <input type="text" id="token" style="width: 500px" placeholder="Paste token here">
+    <br><br>
+    
+    <label>Backup ID:</label>
+    <input type="number" id="backupId" value="1">
+    <br><br>
+    
+    <button onclick="testDownload()">Test Download</button>
+    <button onclick="getToken()">Get Token from App</button>
+    
+    <div id="result" class="result"></div>
+    
+    <h2>Test 2: Check Route</h2>
+    <button onclick="checkRoute()">Check Route Exists</button>
+    <div id="routeResult" class="result"></div>
+    
+    <h2>Test 3: Check Auth</h2>
+    <button onclick="checkAuth()">Check Authentication</button>
+    <div id="authResult" class="result"></div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        
+        function getToken() {
+            // Mở trang chính trong tab mới để lấy token
+            const win = window.open('http://127.0.0.1:8000', '_blank');
+            document.getElementById('result').innerHTML = `
+                <p>✅ Đã mở trang chính</p>
+                <p>1. Đăng nhập</p>
+                <p>2. Mở Console (F12)</p>
+                <p>3. Chạy: <code>localStorage.getItem('token')</code></p>
+                <p>4. Copy token và paste vào ô trên</p>
+            `;
+        }
+        
+        function testDownload() {
+            const token = document.getElementById('token').value;
+            const backupId = document.getElementById('backupId').value;
+            
+            if (!token) {
+                alert('Vui lòng nhập token!');
+                return;
+            }
+            
+            const url = `${API_URL}/backups/${backupId}/download?token=${token}`;
+            
+            document.getElementById('result').innerHTML = `
+                <p><strong>Download URL:</strong></p>
+                <p><code>${url}</code></p>
+                <p>🔄 Đang tải...</p>
+            `;
+            
+            // Thử download
+            window.location.href = url;
+            
+            setTimeout(() => {
+                document.getElementById('result').innerHTML += `
+                    <p>✅ Nếu file download → Thành công!</p>
+                    <p>❌ Nếu redirect hoặc error → Kiểm tra console (F12)</p>
+                `;
+            }, 1000);
+        }
+        
+        async function checkRoute() {
+            const token = document.getElementById('token').value;
+            const backupId = document.getElementById('backupId').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/backups/${backupId}/download?token=${token}`, {
+                    method: 'HEAD'
+                });
+                
+                document.getElementById('routeResult').innerHTML = `
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>Content-Type:</strong> ${response.headers.get('Content-Type')}</p>
+                    <p><strong>Content-Disposition:</strong> ${response.headers.get('Content-Disposition')}</p>
+                `;
+            } catch (error) {
+                document.getElementById('routeResult').innerHTML = `
+                    <p style="color: red">❌ Error: ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function checkAuth() {
+            const token = document.getElementById('token').value;
+            
+            if (!token) {
+                alert('Vui lòng nhập token!');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('authResult').innerHTML = `
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>User:</strong> ${data.TenDangNhap || 'N/A'}</p>
+                    <p><strong>Role:</strong> ${data.Role || 'N/A'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('authResult').innerHTML = `
+                    <p style="color: red">❌ Error: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

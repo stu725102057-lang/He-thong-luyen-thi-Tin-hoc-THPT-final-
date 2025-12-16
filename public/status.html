@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Server Status Check</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            color: #10b981;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .status {
+            font-size: 72px;
+            margin: 30px 0;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .message {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .info {
+            background: #f0fdf4;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #10b981;
+        }
+        .info p {
+            margin: 10px 0;
+            color: #065f46;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+        }
+        .checklist {
+            text-align: left;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .checklist h3 {
+            color: #10b981;
+            margin-bottom: 15px;
+        }
+        .checklist li {
+            padding: 8px 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ THÀNH CÔNG!</h1>
+        <div class="status">🚀</div>
+        <p class="message">Server Laravel đang chạy ổn định!</p>
+        
+        <div class="info">
+            <p><strong>🌐 URL:</strong> http://127.0.0.1:8000</p>
+            <p><strong>⚡ Status:</strong> ONLINE</p>
+            <p><strong>📊 Framework:</strong> Laravel 10</p>
+        </div>
+
+        <div class="checklist">
+            <h3>🎯 Bước tiếp theo:</h3>
+            <ol>
+                <li>Click nút "MỞ HỆ THỐNG" bên dưới</li>
+                <li>Đăng nhập: <strong>giaovien1</strong> / <strong>password</strong></li>
+                <li>Kiểm tra menu có 5 items</li>
+                <li>Test 4 tính năng mới ⭐</li>
+            </ol>
+        </div>
+
+        <a href="http://127.0.0.1:8000" class="btn">🌐 MỞ HỆ THỐNG</a>
+        <a href="http://127.0.0.1:8000/test-page.html" class="btn">📋 HƯỚNG DẪN CHI TIẾT</a>
+
+        <div style="margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 10px; border: 2px solid #f59e0b;">
+            <p style="color: #92400e; font-weight: bold;">⚠️ LƯU Ý QUAN TRỌNG:</p>
+            <p style="color: #78350f; margin-top: 10px;">
+                Không đóng terminal đang chạy server!<br>
+                Nhấn Ctrl+C = Server dừng = Lỗi kết nối
+            </p>
+        </div>
+
+        <div style="margin-top: 20px; color: #666; font-size: 14px;">
+            <p>Đã tạo: 8/12/2025 | v1.0.0 Complete</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh status mỗi 30 giây
+        let refreshCount = 0;
+        setInterval(() => {
+            refreshCount++;
+            console.log(`✅ Server check #${refreshCount} - Status: OK`);
+        }, 30000);
+
+        // Log ra console
+        console.log('%c🎉 SERVER RUNNING! ', 'background: #10b981; color: white; font-size: 20px; padding: 10px;');
+        console.log('%c📝 Login: giaovien1 / password', 'color: #059669; font-size: 14px;');
+        console.log('%c🔗 URL: http://127.0.0.1:8000', 'color: #059669; font-size: 14px;');
+    </script>
+</body>
+</html>

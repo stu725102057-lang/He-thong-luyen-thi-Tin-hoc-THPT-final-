@@ -1,0 +1,95 @@
+<!-- Footer Tin học 247 -->
+<footer class="footer-modern">
+    <div class="container">
+        <div class="row align-items-center py-4">
+            <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                <h4 class="mb-2">
+                    <i class="bi bi-laptop text-warning"></i>
+                    <span class="footer-brand">Tin học 247</span>
+                </h4>
+                <p class="footer-tagline mb-0">Học mọi lúc, mọi nơi - Thành công mọi khi</p>
+            </div>
+            <div class="col-md-6 text-center text-md-end">
+                <div class="footer-credits">
+                    <p class="mb-1 small">
+                        <i class="bi bi-code-slash text-warning"></i> Phát triển bởi 
+                        <strong class="text-warning">Nguyễn Trà My</strong> & 
+                        <strong class="text-warning">Đinh Thị Hạnh</strong>
+                    </p>
+                    <p class="mb-0 text-white-50 small">
+                        <i class="bi bi-c-circle"></i> 2025 Tin học 247. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<style>
+    .footer-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin-top: auto;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .footer-modern::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+    }
+    
+    .footer-modern .container {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .footer-brand {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 800;
+        font-size: 1.8rem;
+        background: linear-gradient(45deg, #fff, #ffd700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .footer-tagline {
+        color: rgba(255, 255, 255, 0.9);
+        font-style: italic;
+        font-size: 0.95rem;
+    }
+    
+    .footer-credits .text-warning {
+        font-weight: 600;
+    }
+    
+    .footer-modern .bi-laptop {
+        font-size: 2rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    .footer-modern .bi-code-slash {
+        animation: rotate 3s linear infinite;
+        display: inline-block;
+    }
+    
+    @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>

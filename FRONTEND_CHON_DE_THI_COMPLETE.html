@@ -1,0 +1,657 @@
+<!-- 
+==============================================================================
+GIAO DIỆN CHỌN ĐỀ THI - HOÀN CHỈNH
+==============================================================================
+Chức năng:
+- Hiển thị danh sách đề thi có sẵn
+- Tìm kiếm và lọc đề thi
+- Xem chi tiết đề thi
+- Bắt đầu làm bài
+
+Sử dụng:
+1. Copy nội dung này vào resources/views/app.blade.php
+2. Thêm vào phần screens (trong <div id="app">)
+3. Đặt id="screen-chon-de-thi"
+
+Yêu cầu:
+- Bootstrap 5.3.0
+- Font Awesome 6.4.0
+- API: GET /api/de-thi, GET /api/de-thi/{maDe}, POST /api/de-thi/{maDe}/bat-dau
+==============================================================================
+-->
+
+<div id="screen-chon-de-thi" class="screen" style="display: none;">
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">
+                        <i class="fas fa-clipboard-list text-primary"></i>
+                        Chọn đề thi
+                    </h2>
+                    <button class="btn btn-outline-secondary" onclick="taiLaiDanhSachDeThi()">
+                        <i class="fas fa-sync-alt"></i> Tải lại
+                    </button>
+                </div>
+                <p class="text-muted mt-2">Chọn đề thi để bắt đầu làm bài</p>
+            </div>
+        </div>
+
+        <!-- Bộ lọc và tìm kiếm -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control" 
+                           id="search-de-thi" 
+                           placeholder="Tìm kiếm theo tên đề thi..."
+                           onkeyup="timKiemDeThi()">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="filter-trang-thai" onchange="locDeThi()">
+                    <option value="all">Tất cả đề thi</option>
+                    <option value="chua-lam">Chưa làm</option>
+                    <option value="da-lam">Đã làm</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading spinner -->
+        <div id="loading-de-thi" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-3 text-muted">Đang tải danh sách đề thi...</p>
+        </div>
+
+        <!-- Danh sách đề thi -->
+        <div id="danh-sach-de-thi" class="row g-4">
+            <!-- Các card đề thi sẽ được thêm động bằng JavaScript -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination-de-thi" class="row mt-4">
+            <div class="col-12">
+                <nav aria-label="Phân trang">
+                    <ul class="pagination justify-content-center" id="pagination-list">
+                        <!-- Pagination sẽ được tạo động -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Thông báo không có đề thi -->
+        <div id="no-exams-message" class="alert alert-info text-center" style="display: none;">
+            <i class="fas fa-info-circle fa-2x mb-3"></i>
+            <h5>Không có đề thi nào</h5>
+            <p class="mb-0">Hiện tại chưa có đề thi nào khả dụng. Vui lòng quay lại sau.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal chi tiết đề thi -->
+<div class="modal fade" id="modalChiTietDeThi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt"></i>
+                    <span id="modal-ten-de-thi">Chi tiết đề thi</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Loading -->
+                <div id="modal-loading" class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">Đang tải thông tin...</p>
+                </div>
+
+                <!-- Nội dung chi tiết -->
+                <div id="modal-content" style="display: none;">
+                    <!-- Thông tin cơ bản -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted">
+                                <i class="fas fa-info-circle"></i> Thông tin chung
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <strong>Mã đề:</strong>
+                                    <span id="modal-ma-de"></span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Số câu hỏi:</strong>
+                                    <span id="modal-so-cau"></span> câu
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Thời gian:</strong>
+                                    <span id="modal-thoi-gian"></span> phút
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Trạng thái:</strong>
+                                    <span id="modal-trang-thai-badge"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mô tả -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted">
+                                <i class="fas fa-align-left"></i> Mô tả
+                            </h6>
+                            <p id="modal-mo-ta" class="mb-0"></p>
+                        </div>
+                    </div>
+
+                    <!-- Lịch sử làm bài (nếu đã làm) -->
+                    <div id="modal-lich-su" class="card mb-3" style="display: none;">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted">
+                                <i class="fas fa-history"></i> Lần làm trước
+                            </h6>
+                            <div class="alert alert-warning mb-0">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>Điểm:</strong>
+                                        <span id="modal-diem-cu" class="badge bg-warning text-dark fs-6"></span>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <strong>Thời gian làm bài:</strong>
+                                        <span id="modal-thoi-gian-cu"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cảnh báo quan trọng -->
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Lưu ý quan trọng
+                        </h6>
+                        <ul class="mb-0 ps-3">
+                            <li>Bạn chỉ được làm bài <strong>một lần duy nhất</strong></li>
+                            <li>Khi bắt đầu, đồng hồ đếm ngược sẽ tự động chạy</li>
+                            <li>Hệ thống sẽ <strong>tự động nộp bài</strong> khi hết giờ</li>
+                            <li>Không được thoát ra khỏi trang làm bài (hệ thống sẽ phát hiện gian lận)</li>
+                            <li>Câu trả lời sẽ được tự động lưu mỗi 60 giây</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Đóng
+                </button>
+                <button type="button" 
+                        class="btn btn-success" 
+                        id="btn-bat-dau-lam-bai"
+                        onclick="batDauLamBai()">
+                    <i class="fas fa-play"></i> Bắt đầu làm bài
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles cho màn hình chọn đề thi */
+#screen-chon-de-thi .exam-card {
+    transition: all 0.3s ease;
+    border: 1px solid #dee2e6;
+    height: 100%;
+}
+
+#screen-chon-de-thi .exam-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border-color: #0d6efd;
+}
+
+#screen-chon-de-thi .exam-card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+#screen-chon-de-thi .exam-card-body {
+    padding: 1.5rem;
+}
+
+#screen-chon-de-thi .exam-info-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#screen-chon-de-thi .exam-info-item:last-child {
+    border-bottom: none;
+}
+
+#screen-chon-de-thi .exam-info-item i {
+    width: 30px;
+    color: #6c757d;
+}
+
+#screen-chon-de-thi .badge-da-lam {
+    background-color: #28a745;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+#screen-chon-de-thi .badge-chua-lam {
+    background-color: #ffc107;
+    color: #000;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+#screen-chon-de-thi .pagination .page-link {
+    color: #667eea;
+}
+
+#screen-chon-de-thi .pagination .page-item.active .page-link {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#screen-chon-de-thi .exam-card {
+    animation: fadeIn 0.5s ease-out;
+}
+</style>
+
+<script>
+// ==============================================================================
+// JAVASCRIPT CHO CHỨC NĂNG CHỌN ĐỀ THI
+// ==============================================================================
+
+// Biến global
+let currentPage = 1;
+let totalPages = 1;
+let allExams = [];
+let filteredExams = [];
+let selectedExamId = null;
+
+/**
+ * Khởi tạo màn hình chọn đề thi
+ * Gọi hàm này khi user click vào menu "Làm bài"
+ */
+function khoiTaoManHinhChonDeThi() {
+    showScreen('screen-chon-de-thi');
+    taiDanhSachDeThi();
+}
+
+/**
+ * Tải danh sách đề thi từ API
+ */
+async function taiDanhSachDeThi() {
+    const loadingEl = document.getElementById('loading-de-thi');
+    const danhSachEl = document.getElementById('danh-sach-de-thi');
+    const noExamsEl = document.getElementById('no-exams-message');
+    
+    // Hiển thị loading
+    loadingEl.style.display = 'block';
+    danhSachEl.innerHTML = '';
+    noExamsEl.style.display = 'none';
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/de-thi?page=' + currentPage, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Không thể tải danh sách đề thi');
+        }
+        
+        const data = await response.json();
+        
+        // Lưu dữ liệu
+        allExams = data.data;
+        filteredExams = allExams;
+        totalPages = data.last_page;
+        currentPage = data.current_page;
+        
+        // Ẩn loading
+        loadingEl.style.display = 'none';
+        
+        // Hiển thị kết quả
+        if (allExams.length === 0) {
+            noExamsEl.style.display = 'block';
+        } else {
+            hienThiDanhSachDeThi(filteredExams);
+            taoPagination();
+        }
+        
+    } catch (error) {
+        loadingEl.style.display = 'none';
+        showErrorToast('Lỗi tải dữ liệu', error.message);
+    }
+}
+
+/**
+ * Tải lại danh sách đề thi
+ */
+function taiLaiDanhSachDeThi() {
+    currentPage = 1;
+    document.getElementById('search-de-thi').value = '';
+    document.getElementById('filter-trang-thai').value = 'all';
+    taiDanhSachDeThi();
+}
+
+/**
+ * Hiển thị danh sách đề thi lên giao diện
+ */
+function hienThiDanhSachDeThi(exams) {
+    const container = document.getElementById('danh-sach-de-thi');
+    container.innerHTML = '';
+    
+    exams.forEach((exam, index) => {
+        const card = taoCardDeThi(exam, index);
+        container.innerHTML += card;
+    });
+}
+
+/**
+ * Tạo HTML cho một card đề thi
+ */
+function taoCardDeThi(exam, index) {
+    const daLam = exam.da_lam ? true : false;
+    const badge = daLam 
+        ? `<span class="badge badge-da-lam"><i class="fas fa-check"></i> Đã làm</span>`
+        : `<span class="badge badge-chua-lam"><i class="fas fa-clock"></i> Chưa làm</span>`;
+    
+    const diemCu = daLam ? `<div class="mt-2"><strong>Điểm lần trước:</strong> <span class="badge bg-warning text-dark">${exam.diem_cu}/10</span></div>` : '';
+    
+    return `
+        <div class="col-md-6 col-lg-4" style="animation-delay: ${index * 0.1}s">
+            <div class="card exam-card">
+                <div class="exam-card-header">
+                    <h5 class="mb-0">${exam.TenDe}</h5>
+                    <small>${exam.MaDe}</small>
+                </div>
+                <div class="exam-card-body">
+                    <div class="exam-info-item">
+                        <i class="fas fa-list-ol"></i>
+                        <span><strong>Số câu hỏi:</strong> ${exam.SoCau} câu</span>
+                    </div>
+                    <div class="exam-info-item">
+                        <i class="fas fa-clock"></i>
+                        <span><strong>Thời gian:</strong> ${exam.ThoiGianLamBai} phút</span>
+                    </div>
+                    <div class="exam-info-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span><strong>Ngày tạo:</strong> ${formatDate(exam.created_at)}</span>
+                    </div>
+                    <div class="mt-3">
+                        ${badge}
+                    </div>
+                    ${diemCu}
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="xemChiTietDeThi('${exam.MaDe}')">
+                            <i class="fas fa-eye"></i> Xem chi tiết
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Xem chi tiết một đề thi
+ */
+async function xemChiTietDeThi(maDe) {
+    selectedExamId = maDe;
+    const modal = new bootstrap.Modal(document.getElementById('modalChiTietDeThi'));
+    modal.show();
+    
+    // Hiển thị loading
+    document.getElementById('modal-loading').style.display = 'block';
+    document.getElementById('modal-content').style.display = 'none';
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/de-thi/${maDe}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Không thể tải thông tin đề thi');
+        }
+        
+        const data = await response.json();
+        
+        // Điền thông tin vào modal
+        document.getElementById('modal-ten-de-thi').textContent = data.TenDe;
+        document.getElementById('modal-ma-de').textContent = data.MaDe;
+        document.getElementById('modal-so-cau').textContent = data.SoCau;
+        document.getElementById('modal-thoi-gian').textContent = data.ThoiGianLamBai;
+        document.getElementById('modal-mo-ta').textContent = data.MoTa || 'Không có mô tả';
+        
+        // Trạng thái
+        const trangThai = data.da_lam 
+            ? '<span class="badge bg-success">Đã làm</span>'
+            : '<span class="badge bg-warning text-dark">Chưa làm</span>';
+        document.getElementById('modal-trang-thai-badge').innerHTML = trangThai;
+        
+        // Lịch sử (nếu đã làm)
+        const lichSuEl = document.getElementById('modal-lich-su');
+        if (data.da_lam) {
+            lichSuEl.style.display = 'block';
+            document.getElementById('modal-diem-cu').textContent = data.diem_cu + '/10';
+            document.getElementById('modal-thoi-gian-cu').textContent = formatDateTime(data.thoi_gian_lam);
+            
+            // Disable nút bắt đầu nếu đã làm
+            const btnBatDau = document.getElementById('btn-bat-dau-lam-bai');
+            btnBatDau.disabled = true;
+            btnBatDau.innerHTML = '<i class="fas fa-ban"></i> Đã làm bài này';
+        } else {
+            lichSuEl.style.display = 'none';
+            const btnBatDau = document.getElementById('btn-bat-dau-lam-bai');
+            btnBatDau.disabled = false;
+            btnBatDau.innerHTML = '<i class="fas fa-play"></i> Bắt đầu làm bài';
+        }
+        
+        // Hiển thị nội dung
+        document.getElementById('modal-loading').style.display = 'none';
+        document.getElementById('modal-content').style.display = 'block';
+        
+    } catch (error) {
+        showErrorToast('Lỗi', error.message);
+        modal.hide();
+    }
+}
+
+/**
+ * Bắt đầu làm bài thi
+ */
+async function batDauLamBai() {
+    if (!selectedExamId) {
+        showErrorToast('Lỗi', 'Vui lòng chọn đề thi');
+        return;
+    }
+    
+    // Xác nhận
+    if (!confirm('Bạn có chắc chắn muốn bắt đầu làm bài?\n\nLưu ý: Khi bắt đầu, đồng hồ sẽ chạy và bạn chỉ được làm 1 lần duy nhất!')) {
+        return;
+    }
+    
+    const btn = document.getElementById('btn-bat-dau-lam-bai');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang khởi tạo...';
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/de-thi/${selectedExamId}/bat-dau`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Không thể bắt đầu làm bài');
+        }
+        
+        const data = await response.json();
+        
+        // Lưu thông tin bài làm vào localStorage
+        localStorage.setItem('current_exam', JSON.stringify({
+            MaBaiLam: data.MaBaiLam,
+            MaDe: data.MaDe,
+            TenDe: data.TenDe,
+            ThoiGianLamBai: data.ThoiGianLamBai,
+            ThoiGianBatDau: data.ThoiGianBatDau,
+            DanhSachCauHoi: data.DanhSachCauHoi
+        }));
+        
+        // Đóng modal và chuyển sang màn hình làm bài
+        bootstrap.Modal.getInstance(document.getElementById('modalChiTietDeThi')).hide();
+        khoiTaoManHinhLamBai();
+        
+    } catch (error) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Bắt đầu làm bài';
+        showErrorToast('Lỗi', error.message);
+    }
+}
+
+/**
+ * Tìm kiếm đề thi
+ */
+function timKiemDeThi() {
+    const keyword = document.getElementById('search-de-thi').value.toLowerCase();
+    const filterStatus = document.getElementById('filter-trang-thai').value;
+    
+    filteredExams = allExams.filter(exam => {
+        const matchName = exam.TenDe.toLowerCase().includes(keyword) || 
+                         exam.MaDe.toLowerCase().includes(keyword);
+        
+        let matchStatus = true;
+        if (filterStatus === 'chua-lam') {
+            matchStatus = !exam.da_lam;
+        } else if (filterStatus === 'da-lam') {
+            matchStatus = exam.da_lam;
+        }
+        
+        return matchName && matchStatus;
+    });
+    
+    hienThiDanhSachDeThi(filteredExams);
+    
+    // Hiển thị thông báo nếu không có kết quả
+    const noExamsEl = document.getElementById('no-exams-message');
+    if (filteredExams.length === 0) {
+        noExamsEl.style.display = 'block';
+        noExamsEl.querySelector('h5').textContent = 'Không tìm thấy đề thi';
+        noExamsEl.querySelector('p').textContent = 'Không có đề thi nào khớp với tiêu chí tìm kiếm.';
+    } else {
+        noExamsEl.style.display = 'none';
+    }
+}
+
+/**
+ * Lọc đề thi theo trạng thái
+ */
+function locDeThi() {
+    timKiemDeThi(); // Sử dụng lại hàm tìm kiếm
+}
+
+/**
+ * Tạo pagination
+ */
+function taoPagination() {
+    const container = document.getElementById('pagination-list');
+    container.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // Nút Previous
+    const prevDisabled = currentPage === 1 ? 'disabled' : '';
+    container.innerHTML += `
+        <li class="page-item ${prevDisabled}">
+            <a class="page-link" href="#" onclick="chuyenTrang(${currentPage - 1}); return false;">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+    `;
+    
+    // Các trang
+    for (let i = 1; i <= totalPages; i++) {
+        const active = i === currentPage ? 'active' : '';
+        container.innerHTML += `
+            <li class="page-item ${active}">
+                <a class="page-link" href="#" onclick="chuyenTrang(${i}); return false;">${i}</a>
+            </li>
+        `;
+    }
+    
+    // Nút Next
+    const nextDisabled = currentPage === totalPages ? 'disabled' : '';
+    container.innerHTML += `
+        <li class="page-item ${nextDisabled}">
+            <a class="page-link" href="#" onclick="chuyenTrang(${currentPage + 1}); return false;">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+    `;
+}
+
+/**
+ * Chuyển trang
+ */
+function chuyenTrang(page) {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    currentPage = page;
+    taiDanhSachDeThi();
+}
+
+/**
+ * Format date
+ */
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
+}
+
+/**
+ * Format datetime
+ */
+function formatDateTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN');
+}
+
+// ==============================================================================
+// KẾT THÚC JAVASCRIPT CHỌN ĐỀ THI
+// ==============================================================================
+</script>

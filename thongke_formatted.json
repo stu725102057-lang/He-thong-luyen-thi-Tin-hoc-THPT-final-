@@ -1,0 +1,189 @@
+﻿{
+    "success":  true,
+    "message":  "Lấy thống kê cá nhân thành công",
+    "data":  {
+                 "thongTinChung":  {
+                                       "tongSoBaiLam":  6,
+                                       "diemTrungBinh":  5.25,
+                                       "diemCaoNhat":  8.5,
+                                       "diemThapNhat":  2,
+                                       "tiLeDungTrungBinh":  51.67,
+                                       "tongSoCauDaLam":  60,
+                                       "tongSoCauDung":  31,
+                                       "tongSoCauSai":  23,
+                                       "tongSoCauKhongLam":  6
+                                   },
+                 "lichSuDiem":  [
+                                    {
+                                        "lanThi":  1,
+                                        "ngay":  "11/12/2025",
+                                        "ngayRutGon":  "11/12",
+                                        "diem":  7,
+                                        "tenDe":  "Đề thi thử Tin học THPT Quốc gia 2025",
+                                        "maDe":  "DE001",
+                                        "soCauDung":  7,
+                                        "soCauSai":  3,
+                                        "tongSoCau":  10
+                                    },
+                                    {
+                                        "lanThi":  2,
+                                        "ngay":  "11/12/2025",
+                                        "ngayRutGon":  "11/12",
+                                        "diem":  8.5,
+                                        "tenDe":  "Đề thi thử Tin học THPT Quốc gia 2025",
+                                        "maDe":  "DE001",
+                                        "soCauDung":  8,
+                                        "soCauSai":  2,
+                                        "tongSoCau":  10
+                                    },
+                                    {
+                                        "lanThi":  3,
+                                        "ngay":  "11/12/2025",
+                                        "ngayRutGon":  "11/12",
+                                        "diem":  6,
+                                        "tenDe":  "Đề thi thử Tin học THPT Quốc gia 2025",
+                                        "maDe":  "DE001",
+                                        "soCauDung":  6,
+                                        "soCauSai":  4,
+                                        "tongSoCau":  10
+                                    },
+                                    {
+                                        "lanThi":  4,
+                                        "ngay":  "11/12/2025",
+                                        "ngayRutGon":  "11/12",
+                                        "diem":  3,
+                                        "tenDe":  "Đề thi thử Tin học THPT Quốc gia 2025",
+                                        "maDe":  "DE001",
+                                        "soCauDung":  3,
+                                        "soCauSai":  6,
+                                        "tongSoCau":  10
+                                    },
+                                    {
+                                        "lanThi":  5,
+                                        "ngay":  "14/12/2025",
+                                        "ngayRutGon":  "14/12",
+                                        "diem":  2,
+                                        "tenDe":  "Đề thi thử Tin học THPT Quốc gia 2025",
+                                        "maDe":  "DE001",
+                                        "soCauDung":  2,
+                                        "soCauSai":  3,
+                                        "tongSoCau":  10
+                                    },
+                                    {
+                                        "lanThi":  6,
+                                        "ngay":  "14/12/2025",
+                                        "ngayRutGon":  "14/12",
+                                        "diem":  5,
+                                        "tenDe":  "Đề thi thử Tin học THPT Quốc gia 2025",
+                                        "maDe":  "DE001",
+                                        "soCauDung":  5,
+                                        "soCauSai":  5,
+                                        "tongSoCau":  10
+                                    }
+                                ],
+                 "tyLeDungSai":  {
+                                     "dung":  31,
+                                     "sai":  23,
+                                     "khongLam":  6,
+                                     "phanTram":  {
+                                                      "dung":  51.67,
+                                                      "sai":  38.33,
+                                                      "khongLam":  10
+                                                  }
+                                 },
+                 "phanTichChuyenDe":  [
+                                          {
+                                              "tenChuyenDe":  "Lập trình",
+                                              "tyLeDung":  14.29,
+                                              "soCauDung":  2,
+                                              "soCauSai":  12,
+                                              "tongSoCau":  14,
+                                              "xepLoai":  "Yếu"
+                                          },
+                                          {
+                                              "tenChuyenDe":  "Cơ sở dữ liệu",
+                                              "tyLeDung":  62.5,
+                                              "soCauDung":  10,
+                                              "soCauSai":  6,
+                                              "tongSoCau":  16,
+                                              "xepLoai":  "Khá"
+                                          },
+                                          {
+                                              "tenChuyenDe":  "Mạng máy tính",
+                                              "tyLeDung":  66.67,
+                                              "soCauDung":  8,
+                                              "soCauSai":  4,
+                                              "tongSoCau":  12,
+                                              "xepLoai":  "Khá"
+                                          },
+                                          {
+                                              "tenChuyenDe":  "Hệ điều hành",
+                                              "tyLeDung":  91.67,
+                                              "soCauDung":  11,
+                                              "soCauSai":  1,
+                                              "tongSoCau":  12,
+                                              "xepLoai":  "Xuất sắc"
+                                          }
+                                      ],
+                 "diemManhYeu":  {
+                                     "diemManh":  [
+                                                      {
+                                                          "tenChuyenDe":  "Hệ điều hành",
+                                                          "tyLeDung":  91.67,
+                                                          "soCauDung":  11,
+                                                          "soCauSai":  1,
+                                                          "tongSoCau":  12,
+                                                          "xepLoai":  "Xuất sắc"
+                                                      }
+                                                  ],
+                                     "diemYeu":  [
+                                                     {
+                                                         "tenChuyenDe":  "Lập trình",
+                                                         "tyLeDung":  14.29,
+                                                         "soCauDung":  2,
+                                                         "soCauSai":  12,
+                                                         "tongSoCau":  14,
+                                                         "xepLoai":  "Yếu"
+                                                     }
+                                                 ],
+                                     "khuyenNghi":  "💪 Hãy cố gắng hơn nữa! Bạn có thể làm tốt hơn. 📚 Tập trung ôn tập các chuyên đề: Lập trình ✨ Điểm mạnh của bạn: Hệ điều hành 💡 Gợi ý: Làm thêm ít nhất 3 đề thi về chuyên đề yếu mỗi tuần."
+                                 },
+                 "bienDoDiem":  [
+                                    {
+                                        "lanThi":  2,
+                                        "diemHienTai":  8.5,
+                                        "diemTruoc":  7,
+                                        "chenhLech":  1.5,
+                                        "xuHuong":  "Tăng"
+                                    },
+                                    {
+                                        "lanThi":  3,
+                                        "diemHienTai":  6,
+                                        "diemTruoc":  8.5,
+                                        "chenhLech":  -2.5,
+                                        "xuHuong":  "Giảm"
+                                    },
+                                    {
+                                        "lanThi":  4,
+                                        "diemHienTai":  3,
+                                        "diemTruoc":  6,
+                                        "chenhLech":  -3,
+                                        "xuHuong":  "Giảm"
+                                    },
+                                    {
+                                        "lanThi":  5,
+                                        "diemHienTai":  2,
+                                        "diemTruoc":  3,
+                                        "chenhLech":  -1,
+                                        "xuHuong":  "Giảm"
+                                    },
+                                    {
+                                        "lanThi":  6,
+                                        "diemHienTai":  5,
+                                        "diemTruoc":  2,
+                                        "chenhLech":  3,
+                                        "xuHuong":  "Tăng"
+                                    }
+                                ]
+             }
+}

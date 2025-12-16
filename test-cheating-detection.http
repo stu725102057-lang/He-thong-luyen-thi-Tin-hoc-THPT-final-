@@ -1,0 +1,250 @@
+### ========================================
+### CHEATING DETECTION API TESTS (UR-05.1)
+### ========================================
+
+### Prerequisites:
+### 1. Start server: php artisan serve
+### 2. Login to get a token
+### 3. Create an active exam (BaiLam with TrangThai='DangLam')
+
+### ---------------------------------------
+### STEP 1: Login to get authentication token
+### ---------------------------------------
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "hocsinh1",
+  "MatKhau": "123456"
+}
+
+### Save the token from response and use it below
+### Response will contain: { "token": "your_token_here", ... }
+
+### ---------------------------------------
+### STEP 2: Verify authentication
+### ---------------------------------------
+GET http://localhost:8000/api/me
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### ---------------------------------------
+### TEST CASE 1: Successful Cheating Detection
+### Should return 200 with incremented SoLanViPham
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS001"
+}
+
+### Expected Response:
+### {
+###   "success": true,
+###   "message": "Đã ghi nhận hành vi gian lận",
+###   "data": {
+###     "MaBaiLam": "BL001",
+###     "MaDe": "DT001",
+###     "MaHS": "HS001",
+###     "SoLanViPham": 1,
+###     "ThoiGianGhiNhan": "2025-12-06 14:30:45"
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 2: Multiple Violations (Test Increment)
+### Call this multiple times to see counter increase
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS001"
+}
+
+### Expected: SoLanViPham should increment: 1, 2, 3, ...
+
+### ---------------------------------------
+### TEST CASE 3: Missing MaDe (Validation Error)
+### Should return 422 Unprocessable Entity
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "MaHS": "HS001"
+}
+
+### Expected Response:
+### {
+###   "success": false,
+###   "message": "Dữ liệu không hợp lệ",
+###   "errors": {
+###     "MaDe": ["Mã đề thi không được để trống"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 4: Missing MaHS (Validation Error)
+### Should return 422 Unprocessable Entity
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "MaDe": "DT001"
+}
+
+### Expected Response:
+### {
+###   "success": false,
+###   "message": "Dữ liệu không hợp lệ",
+###   "errors": {
+###     "MaHS": ["Mã học sinh không được để trống"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 5: Missing Both Fields
+### Should return 422 Unprocessable Entity
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{}
+
+### Expected Response:
+### {
+###   "success": false,
+###   "message": "Dữ liệu không hợp lệ",
+###   "errors": {
+###     "MaDe": ["Mã đề thi không được để trống"],
+###     "MaHS": ["Mã học sinh không được để trống"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 6: Non-existent Exam (Not Found)
+### Should return 404 Not Found
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "MaDe": "DT999",
+  "MaHS": "HS001"
+}
+
+### Expected Response:
+### {
+###   "success": false,
+###   "message": "Không tìm thấy bài làm đang thực hiện"
+### }
+
+### ---------------------------------------
+### TEST CASE 7: Non-existent Student (Not Found)
+### Should return 404 Not Found
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS999"
+}
+
+### Expected Response:
+### {
+###   "success": false,
+###   "message": "Không tìm thấy bài làm đang thực hiện"
+### }
+
+### ---------------------------------------
+### TEST CASE 8: No Authentication Token (Unauthorized)
+### Should return 401 Unauthorized
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS001"
+}
+
+### Expected Response:
+### {
+###   "message": "Unauthenticated."
+### }
+
+### ---------------------------------------
+### TEST CASE 9: Invalid Token (Unauthorized)
+### Should return 401 Unauthorized
+### ---------------------------------------
+POST http://localhost:8000/api/ghi-nhan-gian-lan
+Authorization: Bearer INVALID_TOKEN_123456
+Content-Type: application/json
+
+{
+  "MaDe": "DT001",
+  "MaHS": "HS001"
+}
+
+### Expected Response:
+### {
+###   "message": "Unauthenticated."
+### }
+
+### ========================================
+### HELPER: Create Test Data (If needed)
+### ========================================
+
+### Create a BaiLam record with status 'DangLam' for testing
+### You can use PHP Artisan Tinker:
+###
+### php artisan tinker
+###
+### App\Models\BaiLam::create([
+###     'MaBaiLam' => 'BL001',
+###     'MaHS' => 'HS001',
+###     'MaDe' => 'DT001',
+###     'TrangThai' => 'DangLam',
+###     'ThoiGianBatDau' => now(),
+###     'DSCauTraLoi' => [],
+###     'SoLanViPham' => 0
+### ]);
+
+### ========================================
+### MONITORING & VERIFICATION
+### ========================================
+
+### After running tests, verify the violation count in the database:
+### 
+### SELECT MaBaiLam, MaDe, MaHS, SoLanViPham, TrangThai
+### FROM BaiLam
+### WHERE MaHS = 'HS001' AND MaDe = 'DT001';
+###
+### You should see SoLanViPham incremented for each successful call
+
+### ========================================
+### NOTES
+### ========================================
+### 
+### 1. Replace YOUR_TOKEN_HERE with the actual token from login response
+### 2. The feature only works for exams with TrangThai = 'DangLam'
+### 3. Each successful call increments SoLanViPham by 1
+### 4. Violations are NOT recorded for completed exams
+### 5. Authentication is required for all requests
+### 6. Default credentials from seed:
+###    - Username: hocsinh1, Password: 123456
+###    - Username: giaovien1, Password: 123456
+###    - Username: admin, Password: 123456

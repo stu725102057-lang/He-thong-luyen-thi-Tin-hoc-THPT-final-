@@ -1,0 +1,907 @@
+<!-- 
+==============================================================================
+GIAO DIỆN LÀM BÀI THI - HOÀN CHỈNH
+==============================================================================
+Chức năng:
+- Hiển thị câu hỏi và đáp án
+- Đồng hồ đếm ngược
+- Navigator giữa các câu hỏi
+- Đánh dấu câu hỏi đã trả lời
+- Auto-save mỗi 60 giây
+- Chống gian lận (phát hiện chuyển tab)
+- Nộp bài
+
+Yêu cầu:
+- Bootstrap 5.3.0
+- Font Awesome 6.4.0
+- API: POST /api/luu-nhap, POST /api/nop-bai, POST /api/ghi-nhan-gian-lan
+==============================================================================
+-->
+
+<div id="screen-lam-bai" class="screen" style="display: none;">
+    <!-- Header cố định với timer -->
+    <div class="exam-header fixed-top bg-white border-bottom shadow-sm">
+        <div class="container-fluid py-3">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt text-primary"></i>
+                        <span id="exam-title"></span>
+                    </h5>
+                    <small class="text-muted" id="exam-code"></small>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div id="timer-container">
+                        <div class="timer-display" id="timer-display">
+                            <i class="fas fa-clock"></i>
+                            <span id="timer-text">00:00:00</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">Thời gian còn lại</small>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-outline-warning me-2" onclick="moNavigator()">
+                        <i class="fas fa-th"></i>
+                        Danh sách câu hỏi
+                    </button>
+                    <button class="btn btn-success" onclick="nopBai()">
+                        <i class="fas fa-paper-plane"></i>
+                        Nộp bài
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nội dung làm bài -->
+    <div class="exam-content" style="margin-top: 100px;">
+        <div class="container-fluid py-4">
+            <div class="row">
+                <!-- Cột chính: Câu hỏi -->
+                <div class="col-lg-9">
+                    <!-- Thông tin tiến trình -->
+                    <div class="card mb-3 border-primary">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <strong>Câu hỏi:</strong>
+                                    <span id="current-question-number">1</span> / 
+                                    <span id="total-questions">20</span>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <span class="badge bg-success" id="answered-count">0</span> đã trả lời &bull;
+                                    <span class="badge bg-secondary" id="unanswered-count">20</span> chưa trả lời
+                                </div>
+                            </div>
+                            <div class="progress mt-2" style="height: 5px;">
+                                <div id="progress-bar" 
+                                     class="progress-bar bg-success" 
+                                     role="progressbar" 
+                                     style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card câu hỏi -->
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-question-circle"></i>
+                                Câu <span id="question-number-display">1</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <!-- Nội dung câu hỏi -->
+                            <div id="question-content" class="mb-4">
+                                <p class="lead" id="question-text"></p>
+                            </div>
+
+                            <!-- Các đáp án -->
+                            <div id="answers-container">
+                                <!-- Đáp án sẽ được thêm động -->
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <div class="d-flex justify-content-between">
+                                <button class="btn btn-outline-secondary" 
+                                        id="btn-prev" 
+                                        onclick="chuyenCauHoi(-1)">
+                                    <i class="fas fa-chevron-left"></i>
+                                    Câu trước
+                                </button>
+                                <button class="btn btn-outline-primary" 
+                                        id="btn-next" 
+                                        onclick="chuyenCauHoi(1)">
+                                    Câu sau
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auto-save indicator -->
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-save"></i>
+                            <span id="autosave-status">Tự động lưu mỗi 60 giây</span>
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Cột phụ: Navigator mini -->
+                <div class="col-lg-3 d-none d-lg-block">
+                    <div class="card shadow-sm sticky-top" style="top: 110px;">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-list-ol"></i>
+                                Danh sách câu hỏi
+                            </h6>
+                        </div>
+                        <div class="card-body p-2" id="mini-navigator">
+                            <!-- Navigator grid sẽ được tạo động -->
+                        </div>
+                        <div class="card-footer p-2">
+                            <div class="d-flex align-items-center justify-content-between small">
+                                <span><span class="badge bg-success">●</span> Đã trả lời</span>
+                                <span><span class="badge bg-secondary">●</span> Chưa trả lời</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Navigator (cho mobile) -->
+<div class="modal fade" id="modalNavigator" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-th"></i>
+                    Danh sách câu hỏi
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="full-navigator" class="question-grid">
+                    <!-- Navigator sẽ được tạo động -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    <span class="badge bg-success me-2">●</span> Đã trả lời
+                    <span class="badge bg-secondary ms-3 me-2">●</span> Chưa trả lời
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal xác nhận nộp bài -->
+<div class="modal fade" id="modalXacNhanNopBai" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Xác nhận nộp bài
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Bạn có chắc chắn muốn nộp bài không?</p>
+                <div class="alert alert-info">
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Đã trả lời:</strong>
+                            <span id="nopbai-answered" class="badge bg-success">0</span> câu
+                        </div>
+                        <div class="col-6">
+                            <strong>Chưa trả lời:</strong>
+                            <span id="nopbai-unanswered" class="badge bg-secondary">0</span> câu
+                        </div>
+                    </div>
+                </div>
+                <p class="text-danger mb-0">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Lưu ý:</strong> Sau khi nộp bài, bạn không thể chỉnh sửa câu trả lời!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Hủy
+                </button>
+                <button type="button" class="btn btn-success" onclick="xacNhanNopBai()">
+                    <i class="fas fa-paper-plane"></i> Xác nhận nộp bài
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal cảnh báo gian lận -->
+<div class="modal fade" id="modalCanhBaoGianLan" 
+     data-bs-backdrop="static" 
+     data-bs-keyboard="false" 
+     tabindex="-1" 
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    CẢNH BÁO GIAN LẬN
+                </h5>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-ban fa-3x text-danger mb-3"></i>
+                <h5 class="text-danger">Hệ thống phát hiện hành vi gian lận!</h5>
+                <p class="mb-3">Bạn đã chuyển sang tab/cửa sổ khác trong khi làm bài.</p>
+                <div class="alert alert-warning">
+                    <strong>Số lần vi phạm:</strong>
+                    <span id="cheating-count" class="badge bg-danger fs-5">1</span> / 3 lần
+                </div>
+                <p class="text-danger mb-0">
+                    <strong>Lưu ý:</strong> Nếu vi phạm 3 lần, bài thi sẽ tự động bị nộp!
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary" onclick="dongCanhBaoGianLan()">
+                    <i class="fas fa-check"></i> Tôi hiểu và sẽ không vi phạm nữa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ==================== STYLES CHO MÀN HÌNH LÀM BÀI ==================== */
+
+/* Header cố định */
+.exam-header {
+    z-index: 1000;
+}
+
+/* Timer */
+.timer-display {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #dc3545;
+    font-family: 'Courier New', monospace;
+}
+
+.timer-display.warning {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Câu hỏi */
+#question-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+}
+
+/* Đáp án */
+.answer-option {
+    border: 2px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.answer-option:hover {
+    border-color: #0d6efd;
+    background: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.answer-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.answer-option label {
+    cursor: pointer;
+    font-size: 1rem;
+    margin: 0;
+    padding-left: 0.5rem;
+    flex-grow: 1;
+}
+
+.answer-option.selected {
+    border-color: #0d6efd;
+    background: #e7f3ff;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+/* Navigator grid */
+.question-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+}
+
+.question-nav-btn {
+    aspect-ratio: 1;
+    border: 2px solid #dee2e6;
+    border-radius: 0.375rem;
+    background: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.question-nav-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.15);
+}
+
+.question-nav-btn.answered {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.question-nav-btn.current {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3);
+}
+
+/* Auto-save indicator */
+#autosave-status {
+    transition: all 0.3s ease;
+}
+
+#autosave-status.saving {
+    color: #0d6efd !important;
+    font-weight: bold;
+}
+
+#autosave-status.saved {
+    color: #28a745 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .timer-display {
+        font-size: 1.5rem;
+    }
+    
+    .exam-header .row > div {
+        text-align: center !important;
+        margin-bottom: 0.5rem;
+    }
+    
+    .exam-content {
+        margin-top: 140px !important;
+    }
+}
+
+/* Print styles (ẩn khi in) */
+@media print {
+    .exam-header,
+    .card-footer,
+    #mini-navigator {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+// ==============================================================================
+// JAVASCRIPT CHO CHỨC NĂNG LÀM BÀI THI
+// ==============================================================================
+
+// Biến global cho bài thi
+let examData = null;
+let currentQuestionIndex = 0;
+let userAnswers = {}; // {questionId: selectedAnswer}
+let timerInterval = null;
+let remainingSeconds = 0;
+let autoSaveInterval = null;
+let cheatingCount = 0;
+const MAX_CHEATING = 3;
+
+/**
+ * Khởi tạo màn hình làm bài
+ */
+function khoiTaoManHinhLamBai() {
+    // Lấy thông tin bài thi từ localStorage
+    const examJson = localStorage.getItem('current_exam');
+    if (!examJson) {
+        showErrorToast('Lỗi', 'Không tìm thấy thông tin bài thi');
+        showScreen('screen-chon-de-thi');
+        return;
+    }
+    
+    examData = JSON.parse(examJson);
+    
+    // Hiển thị màn hình
+    showScreen('screen-lam-bai');
+    
+    // Khởi tạo giao diện
+    hienThiThongTinDeThi();
+    hienThiCauHoi(0);
+    taoNavigator();
+    
+    // Bắt đầu timer
+    batDauTimer();
+    
+    // Bật auto-save
+    batAutoSave();
+    
+    // Bật phát hiện gian lận
+    batPhatHienGianLan();
+    
+    // Cảnh báo khi rời trang
+    window.addEventListener('beforeunload', canhBaoRoiTrang);
+}
+
+/**
+ * Hiển thị thông tin đề thi lên header
+ */
+function hienThiThongTinDeThi() {
+    document.getElementById('exam-title').textContent = examData.TenDe;
+    document.getElementById('exam-code').textContent = `Mã đề: ${examData.MaDe}`;
+    document.getElementById('total-questions').textContent = examData.DanhSachCauHoi.length;
+    document.getElementById('unanswered-count').textContent = examData.DanhSachCauHoi.length;
+}
+
+/**
+ * Bắt đầu đồng hồ đếm ngược
+ */
+function batDauTimer() {
+    // Tính thời gian còn lại
+    const startTime = new Date(examData.ThoiGianBatDau);
+    const endTime = new Date(startTime.getTime() + examData.ThoiGianLamBai * 60000);
+    const now = new Date();
+    
+    remainingSeconds = Math.floor((endTime - now) / 1000);
+    
+    if (remainingSeconds <= 0) {
+        // Hết giờ
+        tuDongNopBai();
+        return;
+    }
+    
+    // Cập nhật timer mỗi giây
+    capNhatTimer();
+    timerInterval = setInterval(() => {
+        remainingSeconds--;
+        capNhatTimer();
+        
+        if (remainingSeconds <= 0) {
+            clearInterval(timerInterval);
+            tuDongNopBai();
+        }
+    }, 1000);
+}
+
+/**
+ * Cập nhật hiển thị timer
+ */
+function capNhatTimer() {
+    const hours = Math.floor(remainingSeconds / 3600);
+    const minutes = Math.floor((remainingSeconds % 3600) / 60);
+    const seconds = remainingSeconds % 60;
+    
+    const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    document.getElementById('timer-text').textContent = timeString;
+    
+    // Cảnh báo khi còn 5 phút
+    if (remainingSeconds === 300) {
+        document.getElementById('timer-display').classList.add('warning');
+        showWarningToast('Cảnh báo', 'Còn 5 phút nữa hết giờ!');
+    }
+    
+    // Cảnh báo khi còn 1 phút
+    if (remainingSeconds === 60) {
+        showErrorToast('Cảnh báo', 'Còn 1 phút nữa hết giờ!');
+    }
+}
+
+/**
+ * Hiển thị câu hỏi
+ */
+function hienThiCauHoi(index) {
+    if (index < 0 || index >= examData.DanhSachCauHoi.length) return;
+    
+    currentQuestionIndex = index;
+    const question = examData.DanhSachCauHoi[index];
+    
+    // Cập nhật số thứ tự
+    document.getElementById('current-question-number').textContent = index + 1;
+    document.getElementById('question-number-display').textContent = index + 1;
+    
+    // Hiển thị nội dung câu hỏi
+    document.getElementById('question-text').textContent = question.NoiDung;
+    
+    // Hiển thị đáp án
+    const answersContainer = document.getElementById('answers-container');
+    answersContainer.innerHTML = '';
+    
+    const answers = ['A', 'B', 'C', 'D'];
+    answers.forEach(ans => {
+        const answerText = question[`DapAn${ans}`];
+        const isSelected = userAnswers[question.MaCauHoi] === ans;
+        
+        const div = document.createElement('div');
+        div.className = `answer-option ${isSelected ? 'selected' : ''}`;
+        div.innerHTML = `
+            <div class="d-flex align-items-center">
+                <input type="radio" 
+                       name="answer" 
+                       id="answer-${ans}" 
+                       value="${ans}"
+                       ${isSelected ? 'checked' : ''}
+                       onchange="chonDapAn('${question.MaCauHoi}', '${ans}')">
+                <label for="answer-${ans}">
+                    <strong>${ans}.</strong> ${answerText}
+                </label>
+            </div>
+        `;
+        answersContainer.appendChild(div);
+    });
+    
+    // Cập nhật nút Previous/Next
+    document.getElementById('btn-prev').disabled = (index === 0);
+    document.getElementById('btn-next').disabled = (index === examData.DanhSachCauHoi.length - 1);
+    
+    // Cập nhật navigator
+    capNhatNavigator();
+}
+
+/**
+ * Chọn đáp án
+ */
+function chonDapAn(questionId, answer) {
+    userAnswers[questionId] = answer;
+    
+    // Cập nhật giao diện
+    document.querySelectorAll('.answer-option').forEach(el => el.classList.remove('selected'));
+    document.getElementById(`answer-${answer}`).closest('.answer-option').classList.add('selected');
+    
+    // Cập nhật số lượng câu đã trả lời
+    capNhatTienTrinh();
+    capNhatNavigator();
+}
+
+/**
+ * Chuyển câu hỏi
+ */
+function chuyenCauHoi(direction) {
+    const newIndex = currentQuestionIndex + direction;
+    if (newIndex >= 0 && newIndex < examData.DanhSachCauHoi.length) {
+        hienThiCauHoi(newIndex);
+    }
+}
+
+/**
+ * Nhảy đến câu hỏi cụ thể
+ */
+function nhayDenCauHoi(index) {
+    hienThiCauHoi(index);
+    // Đóng modal nếu đang mở
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNavigator'));
+    if (modal) modal.hide();
+}
+
+/**
+ * Tạo navigator
+ */
+function taoNavigator() {
+    const miniNav = document.getElementById('mini-navigator');
+    const fullNav = document.getElementById('full-navigator');
+    
+    let html = '';
+    examData.DanhSachCauHoi.forEach((q, index) => {
+        const answered = userAnswers[q.MaCauHoi] ? 'answered' : '';
+        html += `
+            <button class="question-nav-btn ${answered}" 
+                    onclick="nhayDenCauHoi(${index})"
+                    title="Câu ${index + 1}">
+                ${index + 1}
+            </button>
+        `;
+    });
+    
+    miniNav.innerHTML = html;
+    fullNav.innerHTML = html;
+}
+
+/**
+ * Cập nhật navigator khi chọn câu trả lời
+ */
+function capNhatNavigator() {
+    document.querySelectorAll('.question-nav-btn').forEach((btn, index) => {
+        const questionId = examData.DanhSachCauHoi[index].MaCauHoi;
+        const isAnswered = userAnswers[questionId] !== undefined;
+        const isCurrent = index === currentQuestionIndex;
+        
+        btn.className = 'question-nav-btn';
+        if (isAnswered) btn.classList.add('answered');
+        if (isCurrent) btn.classList.add('current');
+    });
+}
+
+/**
+ * Cập nhật tiến trình
+ */
+function capNhatTienTrinh() {
+    const total = examData.DanhSachCauHoi.length;
+    const answered = Object.keys(userAnswers).length;
+    const unanswered = total - answered;
+    
+    document.getElementById('answered-count').textContent = answered;
+    document.getElementById('unanswered-count').textContent = unanswered;
+    
+    const percentage = (answered / total) * 100;
+    document.getElementById('progress-bar').style.width = percentage + '%';
+}
+
+/**
+ * Mở modal navigator (cho mobile)
+ */
+function moNavigator() {
+    const modal = new bootstrap.Modal(document.getElementById('modalNavigator'));
+    modal.show();
+}
+
+/**
+ * Bật auto-save
+ */
+function batAutoSave() {
+    autoSaveInterval = setInterval(async () => {
+        await luuBaiNhap();
+    }, 60000); // Mỗi 60 giây
+}
+
+/**
+ * Lưu bài nháp
+ */
+async function luuBaiNhap() {
+    const statusEl = document.getElementById('autosave-status');
+    statusEl.textContent = 'Đang lưu...';
+    statusEl.classList.add('saving');
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/luu-nhap', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                MaBaiLam: examData.MaBaiLam,
+                DanhSachCauTraLoi: userAnswers
+            })
+        });
+        
+        if (response.ok) {
+            statusEl.textContent = 'Đã lưu tự động';
+            statusEl.classList.remove('saving');
+            statusEl.classList.add('saved');
+            
+            setTimeout(() => {
+                statusEl.classList.remove('saved');
+                statusEl.textContent = 'Tự động lưu mỗi 60 giây';
+            }, 3000);
+        }
+    } catch (error) {
+        console.error('Auto-save error:', error);
+        statusEl.textContent = 'Lưu thất bại';
+        statusEl.classList.remove('saving');
+    }
+}
+
+/**
+ * Nộp bài
+ */
+function nopBai() {
+    // Cập nhật số liệu trong modal xác nhận
+    const answered = Object.keys(userAnswers).length;
+    const unanswered = examData.DanhSachCauHoi.length - answered;
+    
+    document.getElementById('nopbai-answered').textContent = answered;
+    document.getElementById('nopbai-unanswered').textContent = unanswered;
+    
+    // Hiển thị modal xác nhận
+    const modal = new bootstrap.Modal(document.getElementById('modalXacNhanNopBai'));
+    modal.show();
+}
+
+/**
+ * Xác nhận nộp bài
+ */
+async function xacNhanNopBai() {
+    // Đóng modal
+    bootstrap.Modal.getInstance(document.getElementById('modalXacNhanNopBai')).hide();
+    
+    // Hiển thị loading
+    showLoadingToast('Đang nộp bài...');
+    
+    // Dừng timer và auto-save
+    if (timerInterval) clearInterval(timerInterval);
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/nop-bai', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                MaBaiLam: examData.MaBaiLam,
+                DanhSachCauTraLoi: userAnswers
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Không thể nộp bài');
+        }
+        
+        const result = await response.json();
+        
+        // Xóa thông tin bài thi
+        localStorage.removeItem('current_exam');
+        
+        // Lưu kết quả
+        localStorage.setItem('exam_result', JSON.stringify(result));
+        
+        // Chuyển sang màn hình kết quả
+        showSuccessToast('Thành công', 'Nộp bài thành công!');
+        setTimeout(() => {
+            khoiTaoManHinhKetQua();
+        }, 1000);
+        
+    } catch (error) {
+        showErrorToast('Lỗi', error.message);
+        // Khôi phục timer
+        batDauTimer();
+        batAutoSave();
+    }
+}
+
+/**
+ * Tự động nộp bài khi hết giờ
+ */
+async function tuDongNopBai() {
+    showWarningToast('Hết giờ', 'Hệ thống đang tự động nộp bài...');
+    
+    // Dừng auto-save
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/nop-bai', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                MaBaiLam: examData.MaBaiLam,
+                DanhSachCauTraLoi: userAnswers,
+                TuDongNop: true
+            })
+        });
+        
+        const result = await response.json();
+        localStorage.removeItem('current_exam');
+        localStorage.setItem('exam_result', JSON.stringify(result));
+        
+        showInfoToast('Thông báo', 'Bài thi đã được nộp tự động');
+        setTimeout(() => {
+            khoiTaoManHinhKetQua();
+        }, 2000);
+        
+    } catch (error) {
+        showErrorToast('Lỗi', 'Không thể nộp bài. Vui lòng liên hệ giáo viên.');
+    }
+}
+
+/**
+ * Phát hiện gian lận
+ */
+function batPhatHienGianLan() {
+    document.addEventListener('visibilitychange', async () => {
+        if (document.hidden) {
+            cheatingCount++;
+            
+            // Ghi nhận gian lận lên server
+            await ghiNhanGianLan();
+            
+            // Hiển thị cảnh báo
+            document.getElementById('cheating-count').textContent = cheatingCount;
+            const modal = new bootstrap.Modal(document.getElementById('modalCanhBaoGianLan'));
+            modal.show();
+            
+            // Nếu vượt quá 3 lần, tự động nộp bài
+            if (cheatingCount >= MAX_CHEATING) {
+                setTimeout(async () => {
+                    modal.hide();
+                    showErrorToast('Vi phạm quá nhiều', 'Bài thi sẽ bị nộp tự động!');
+                    await tuDongNopBai();
+                }, 3000);
+            }
+        }
+    });
+}
+
+/**
+ * Ghi nhận hành vi gian lận lên server
+ */
+async function ghiNhanGianLan() {
+    try {
+        const token = localStorage.getItem('token');
+        await fetch('/api/ghi-nhan-gian-lan', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                MaBaiLam: examData.MaBaiLam,
+                LoaiGianLan: 'chuyen_tab',
+                ThoiDiem: new Date().toISOString()
+            })
+        });
+    } catch (error) {
+        console.error('Lỗi ghi nhận gian lận:', error);
+    }
+}
+
+/**
+ * Đóng modal cảnh báo gian lận
+ */
+function dongCanhBaoGianLan() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalCanhBaoGianLan'));
+    if (modal) modal.hide();
+}
+
+/**
+ * Cảnh báo khi người dùng muốn rời trang
+ */
+function canhBaoRoiTrang(e) {
+    e.preventDefault();
+    e.returnValue = 'Bạn có chắc chắn muốn rời khỏi trang? Bài làm của bạn có thể bị mất!';
+    return e.returnValue;
+}
+
+/**
+ * Dọn dẹp khi rời màn hình
+ */
+function dongManHinhLamBai() {
+    if (timerInterval) clearInterval(timerInterval);
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
+    window.removeEventListener('beforeunload', canhBaoRoiTrang);
+}
+
+// ==============================================================================
+// KẾT THÚC JAVASCRIPT LÀM BÀI THI
+// ==============================================================================
+</script>

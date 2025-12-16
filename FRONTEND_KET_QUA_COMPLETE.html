@@ -1,0 +1,605 @@
+<!-- 
+==============================================================================
+GIAO DIỆN KẾT QUẢ THI - HOÀN CHỈNH
+==============================================================================
+Chức năng:
+- Hiển thị điểm số và thống kê
+- Xem chi tiết từng câu hỏi đúng/sai
+- So sánh đáp án của học sinh với đáp án đúng
+- In kết quả
+- Quay lại danh sách đề thi
+
+Yêu cầu:
+- Bootstrap 5.3.0
+- Font Awesome 6.4.0
+- Chart.js 4.x (optional - cho biểu đồ)
+==============================================================================
+-->
+
+<div id="screen-ket-qua" class="screen" style="display: none;">
+    <div class="container py-5">
+        <!-- Header với confetti animation -->
+        <div class="text-center mb-5">
+            <div id="confetti-container"></div>
+            <h2 class="display-4 mb-3">
+                <i class="fas fa-trophy text-warning"></i>
+                Kết quả bài thi
+            </h2>
+            <p class="text-muted lead">Chúc mừng bạn đã hoàn thành bài thi!</p>
+        </div>
+
+        <!-- Card điểm số lớn -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow-lg border-0" id="score-card">
+                    <div class="card-body p-5 text-center">
+                        <h3 class="text-muted mb-4">Điểm của bạn</h3>
+                        <div class="score-display mb-4" id="score-value">
+                            0
+                        </div>
+                        <div class="score-label mb-4" id="score-label">
+                            <!-- Sẽ hiển thị: Xuất sắc / Giỏi / Khá / Trung bình / Yếu -->
+                        </div>
+                        <div class="row text-start">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-success">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <h5 class="mb-0" id="correct-count">0</h5>
+                                        <small class="text-muted">Câu đúng</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-danger">
+                                        <i class="fas fa-times"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <h5 class="mb-0" id="incorrect-count">0</h5>
+                                        <small class="text-muted">Câu sai</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-secondary">
+                                        <i class="fas fa-minus"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <h5 class="mb-0" id="skipped-count">0</h5>
+                                        <small class="text-muted">Câu bỏ qua</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-primary">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <h5 class="mb-0" id="time-taken">00:00</h5>
+                                        <small class="text-muted">Thời gian làm bài</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông tin bài thi -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            Thông tin bài thi
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <strong>Tên đề thi:</strong>
+                                <span id="result-exam-name"></span>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Mã đề:</strong>
+                                <span id="result-exam-code"></span>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Mã bài làm:</strong>
+                                <span id="result-bailam-code"></span>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Ngày thi:</strong>
+                                <span id="result-exam-date"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nút hành động -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="d-flex gap-2 justify-content-center flex-wrap">
+                    <button class="btn btn-primary btn-lg" onclick="xemChiTietBaiLam()">
+                        <i class="fas fa-eye"></i>
+                        Xem chi tiết bài làm
+                    </button>
+                    <button class="btn btn-outline-secondary btn-lg" onclick="inKetQua()">
+                        <i class="fas fa-print"></i>
+                        In kết quả
+                    </button>
+                    <button class="btn btn-outline-primary btn-lg" onclick="quayLaiDanhSach()">
+                        <i class="fas fa-list"></i>
+                        Danh sách đề thi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chi tiết từng câu hỏi -->
+        <div class="row" id="detailed-results" style="display: none;">
+            <div class="col-lg-10 mx-auto">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list-alt"></i>
+                            Chi tiết từng câu hỏi
+                        </h5>
+                        <button class="btn btn-sm btn-light" onclick="dongChiTiet()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="question-details-container">
+                            <!-- Chi tiết câu hỏi sẽ được thêm động -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ==================== STYLES CHO MÀN HÌNH KẾT QUẢ ==================== */
+
+/* Điểm số lớn */
+.score-display {
+    font-size: 6rem;
+    font-weight: bold;
+    line-height: 1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.score-label {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.score-label.xuat-sac {
+    color: #28a745;
+}
+
+.score-label.gioi {
+    color: #17a2b8;
+}
+
+.score-label.kha {
+    color: #ffc107;
+}
+
+.score-label.trung-binh {
+    color: #fd7e14;
+}
+
+.score-label.yeu {
+    color: #dc3545;
+}
+
+/* Icon thống kê */
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Card animation */
+#score-card {
+    animation: slideUp 0.8s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Chi tiết câu hỏi */
+.question-detail-item {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1.5rem;
+    transition: background 0.3s ease;
+}
+
+.question-detail-item:last-child {
+    border-bottom: none;
+}
+
+.question-detail-item:hover {
+    background: #f8f9fa;
+}
+
+.question-detail-item.correct {
+    background: #d4edda;
+    border-left: 5px solid #28a745;
+}
+
+.question-detail-item.incorrect {
+    background: #f8d7da;
+    border-left: 5px solid #dc3545;
+}
+
+.question-detail-item.skipped {
+    background: #fff3cd;
+    border-left: 5px solid #ffc107;
+}
+
+.answer-comparison {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.answer-comparison .user-answer {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.answer-comparison .correct-answer {
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* Confetti animation */
+#confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #f0f;
+    animation: fall 3s linear infinite;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(100vh) rotate(360deg);
+    }
+}
+
+/* Print styles */
+@media print {
+    .btn,
+    .card-header button {
+        display: none !important;
+    }
+    
+    #detailed-results {
+        display: block !important;
+    }
+    
+    .question-detail-item {
+        page-break-inside: avoid;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .score-display {
+        font-size: 4rem;
+    }
+    
+    .score-label {
+        font-size: 1.2rem;
+    }
+}
+</style>
+
+<script>
+// ==============================================================================
+// JAVASCRIPT CHO MÀN HÌNH KẾT QUẢ
+// ==============================================================================
+
+let resultData = null;
+
+/**
+ * Khởi tạo màn hình kết quả
+ */
+function khoiTaoManHinhKetQua() {
+    // Lấy kết quả từ localStorage
+    const resultJson = localStorage.getItem('exam_result');
+    if (!resultJson) {
+        showErrorToast('Lỗi', 'Không tìm thấy kết quả bài thi');
+        showScreen('screen-chon-de-thi');
+        return;
+    }
+    
+    resultData = JSON.parse(resultJson);
+    
+    // Hiển thị màn hình
+    showScreen('screen-ket-qua');
+    
+    // Hiển thị kết quả
+    hienThiKetQua();
+    
+    // Tạo confetti nếu điểm cao
+    if (resultData.Diem >= 8) {
+        taoConfetti();
+    }
+}
+
+/**
+ * Hiển thị kết quả lên giao diện
+ */
+function hienThiKetQua() {
+    // Điểm số
+    const diem = resultData.Diem;
+    document.getElementById('score-value').textContent = diem.toFixed(1);
+    
+    // Xếp loại
+    const { label, className } = xepLoai(diem);
+    const labelEl = document.getElementById('score-label');
+    labelEl.textContent = label;
+    labelEl.className = 'score-label ' + className;
+    
+    // Thống kê
+    document.getElementById('correct-count').textContent = resultData.SoCauDung;
+    document.getElementById('incorrect-count').textContent = resultData.SoCauSai;
+    document.getElementById('skipped-count').textContent = resultData.SoCauBoQua || 0;
+    document.getElementById('time-taken').textContent = formatTimeSpent(resultData.ThoiGianLamBai);
+    
+    // Thông tin bài thi
+    document.getElementById('result-exam-name').textContent = resultData.TenDe;
+    document.getElementById('result-exam-code').textContent = resultData.MaDe;
+    document.getElementById('result-bailam-code').textContent = resultData.MaBaiLam;
+    document.getElementById('result-exam-date').textContent = formatDateTime(resultData.ThoiGianNop);
+}
+
+/**
+ * Xếp loại điểm
+ */
+function xepLoai(diem) {
+    if (diem >= 9) {
+        return { label: '🎉 Xuất sắc', className: 'xuat-sac' };
+    } else if (diem >= 8) {
+        return { label: '🌟 Giỏi', className: 'gioi' };
+    } else if (diem >= 6.5) {
+        return { label: '👍 Khá', className: 'kha' };
+    } else if (diem >= 5) {
+        return { label: '📝 Trung bình', className: 'trung-binh' };
+    } else {
+        return { label: '😟 Yếu', className: 'yeu' };
+    }
+}
+
+/**
+ * Format thời gian làm bài
+ */
+function formatTimeSpent(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
+/**
+ * Xem chi tiết bài làm
+ */
+async function xemChiTietBaiLam() {
+    const container = document.getElementById('question-details-container');
+    container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p class="mt-3">Đang tải chi tiết...</p></div>';
+    
+    document.getElementById('detailed-results').style.display = 'block';
+    
+    // Scroll đến phần chi tiết
+    document.getElementById('detailed-results').scrollIntoView({ behavior: 'smooth' });
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/bai-lam/${resultData.MaBaiLam}/chi-tiet`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Không thể tải chi tiết bài làm');
+        }
+        
+        const data = await response.json();
+        hienThiChiTietCauHoi(data.DanhSachCauHoi);
+        
+    } catch (error) {
+        container.innerHTML = `
+            <div class="alert alert-danger m-3">
+                <i class="fas fa-exclamation-triangle"></i>
+                ${error.message}
+            </div>
+        `;
+    }
+}
+
+/**
+ * Hiển thị chi tiết từng câu hỏi
+ */
+function hienThiChiTietCauHoi(questions) {
+    const container = document.getElementById('question-details-container');
+    container.innerHTML = '';
+    
+    questions.forEach((q, index) => {
+        const isCorrect = q.DapAnChon === q.DapAnDung;
+        const isSkipped = !q.DapAnChon;
+        
+        let statusClass = 'skipped';
+        let statusIcon = '<i class="fas fa-minus-circle text-warning"></i>';
+        let statusText = 'Chưa trả lời';
+        
+        if (!isSkipped) {
+            if (isCorrect) {
+                statusClass = 'correct';
+                statusIcon = '<i class="fas fa-check-circle text-success"></i>';
+                statusText = 'Đúng';
+            } else {
+                statusClass = 'incorrect';
+                statusIcon = '<i class="fas fa-times-circle text-danger"></i>';
+                statusText = 'Sai';
+            }
+        }
+        
+        const div = document.createElement('div');
+        div.className = `question-detail-item ${statusClass}`;
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h5 class="mb-0">
+                    <strong>Câu ${index + 1}:</strong> ${q.NoiDung}
+                </h5>
+                <span class="ms-3">
+                    ${statusIcon}
+                    <strong>${statusText}</strong>
+                </span>
+            </div>
+            
+            <div class="answer-comparison">
+                <div class="row">
+                    ${q.DapAnChon ? `
+                        <div class="col-md-6 mb-2">
+                            <strong>Câu trả lời của bạn:</strong>
+                            <div class="user-answer mt-1">
+                                ${q.DapAnChon}. ${q['DapAn' + q.DapAnChon]}
+                            </div>
+                        </div>
+                    ` : ''}
+                    <div class="col-md-6 mb-2">
+                        <strong>Đáp án đúng:</strong>
+                        <div class="correct-answer mt-1">
+                            ${q.DapAnDung}. ${q['DapAn' + q.DapAnDung]}
+                        </div>
+                    </div>
+                </div>
+                
+                ${q.GiaiThich ? `
+                    <div class="mt-3">
+                        <strong>💡 Giải thích:</strong>
+                        <p class="mb-0 mt-1">${q.GiaiThich}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        container.appendChild(div);
+    });
+}
+
+/**
+ * Đóng chi tiết
+ */
+function dongChiTiet() {
+    document.getElementById('detailed-results').style.display = 'none';
+}
+
+/**
+ * In kết quả
+ */
+function inKetQua() {
+    // Mở chi tiết trước khi in
+    if (document.getElementById('detailed-results').style.display === 'none') {
+        xemChiTietBaiLam();
+        setTimeout(() => {
+            window.print();
+        }, 2000);
+    } else {
+        window.print();
+    }
+}
+
+/**
+ * Quay lại danh sách đề thi
+ */
+function quayLaiDanhSach() {
+    if (confirm('Bạn có chắc chắn muốn quay lại danh sách đề thi?')) {
+        khoiTaoManHinhChonDeThi();
+    }
+}
+
+/**
+ * Tạo hiệu ứng confetti
+ */
+function taoConfetti() {
+    const container = document.getElementById('confetti-container');
+    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+    
+    for (let i = 0; i < 50; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDelay = Math.random() * 3 + 's';
+            confetti.style.animationDuration = Math.random() * 2 + 3 + 's';
+            container.appendChild(confetti);
+            
+            setTimeout(() => {
+                confetti.remove();
+            }, 5000);
+        }, i * 50);
+    }
+}
+
+/**
+ * Format datetime
+ */
+function formatDateTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN');
+}
+
+// ==============================================================================
+// KẾT THÚC JAVASCRIPT KẾT QUẢ
+// ==============================================================================
+</script>

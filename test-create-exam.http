@@ -1,0 +1,453 @@
+### ========================================
+### CREATE EXAM API TESTS (UR-03.3)
+### Tạo Đề Thi - Teacher Only
+### ========================================
+
+### Prerequisites:
+### 1. Start server: php artisan serve
+### 2. Login as TEACHER to get token
+### 3. Use teacher token for all requests below
+
+### ---------------------------------------
+### STEP 1: Login as Teacher
+### ---------------------------------------
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "giaovien1",
+  "MatKhau": "123456"
+}
+
+### Save the token from response
+### Response: { "token": "your_teacher_token_here", ... }
+
+### ---------------------------------------
+### STEP 2: Verify Teacher Authentication
+### ---------------------------------------
+GET http://localhost:8000/api/me
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+### Should show teacher account details
+
+### ========================================
+### SUCCESS TEST CASES
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 1: Create Complete Exam ✅
+### All fields provided
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học THPT Quốc gia 2025",
+  "ThoiGianLamBai": 90,
+  "MoTa": "Đề thi bao gồm 50 câu trắc nghiệm về lập trình Python, cơ sở dữ liệu và mạng máy tính"
+}
+
+### Expected Response (201):
+### {
+###   "success": true,
+###   "message": "Tạo đề thi thành công",
+###   "data": {
+###     "MaDe": "DT001",
+###     "TenDe": "Đề thi Tin học THPT Quốc gia 2025",
+###     "ThoiGianLamBai": 90,
+###     "NgayTao": "2025-12-06 15:30:45",
+###     "SoLuongCauHoi": 0,
+###     "MaGV": "GV001",
+###     "TenGiaoVien": "Nguyễn Văn A",
+###     "MoTa": "Đề thi bao gồm...",
+###     "TrangThai": "Hoạt động"
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 2: Create Exam Without Description ✅
+### MoTa is optional
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Kiểm tra 15 phút - Chương 1",
+  "ThoiGianLamBai": 15
+}
+
+### Expected: 201 Created, MoTa will be null
+
+### ---------------------------------------
+### TEST CASE 3: Short Duration Exam (1 minute) ✅
+### Minimum valid duration
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Bài tập nhanh",
+  "ThoiGianLamBai": 1
+}
+
+### Expected: 201 Created
+
+### ---------------------------------------
+### TEST CASE 4: Long Duration Exam (5 hours) ✅
+### Maximum valid duration
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi cuối kỳ - Tổng hợp",
+  "ThoiGianLamBai": 300
+}
+
+### Expected: 201 Created (300 minutes = 5 hours)
+
+### ---------------------------------------
+### TEST CASE 5: Create Multiple Exams ✅
+### Test auto-increment MaDe
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi số 2",
+  "ThoiGianLamBai": 60
+}
+
+### Run this multiple times to see: DT001, DT002, DT003, ...
+
+### ---------------------------------------
+### TEST CASE 6: Long Exam Name ✅
+### TenDe up to 200 characters
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi kiểm tra đánh giá năng lực môn Tin học THPT năm học 2025-2026 học kỳ I dành cho học sinh lớp 12 chuyên Tin - Trường THPT Chuyên Hà Nội Amsterdam",
+  "ThoiGianLamBai": 120
+}
+
+### Expected: 201 Created (exactly 200 chars allowed)
+
+### ---------------------------------------
+### TEST CASE 7: Standard 45-minute Test ✅
+### Common exam duration
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Kiểm tra giữa kỳ 1",
+  "ThoiGianLamBai": 45,
+  "MoTa": "Kiểm tra kiến thức từ bài 1 đến bài 5"
+}
+
+### Expected: 201 Created
+
+### ---------------------------------------
+### TEST CASE 8: Standard 90-minute Exam ✅
+### Common exam duration
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi học kỳ 1",
+  "ThoiGianLamBai": 90,
+  "MoTa": "Đề thi tổng hợp học kỳ 1 năm học 2025-2026"
+}
+
+### Expected: 201 Created
+
+### ========================================
+### VALIDATION ERROR TEST CASES (422)
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 9: Missing TenDe ❌
+### Required field missing
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "ThoiGianLamBai": 90
+}
+
+### Expected Response (422):
+### {
+###   "success": false,
+###   "message": "Dữ liệu không hợp lệ",
+###   "errors": {
+###     "TenDe": ["Tên đề thi không được để trống"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 10: Missing ThoiGianLamBai ❌
+### Required field missing
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học"
+}
+
+### Expected Response (422):
+### {
+###   "success": false,
+###   "message": "Dữ liệu không hợp lệ",
+###   "errors": {
+###     "ThoiGianLamBai": ["Thời gian làm bài không được để trống"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 11: Empty Request Body ❌
+### All fields missing
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{}
+
+### Expected: 422 with errors for both TenDe and ThoiGianLamBai
+
+### ---------------------------------------
+### TEST CASE 12: ThoiGianLamBai = 0 ❌
+### Below minimum (1 minute)
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": 0
+}
+
+### Expected Response (422):
+### {
+###   "errors": {
+###     "ThoiGianLamBai": ["Thời gian làm bài phải ít nhất 1 phút"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 13: ThoiGianLamBai = -10 ❌
+### Negative value
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": -10
+}
+
+### Expected: 422 (min validation fails)
+
+### ---------------------------------------
+### TEST CASE 14: ThoiGianLamBai = 500 ❌
+### Above maximum (300 minutes)
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": 500
+}
+
+### Expected Response (422):
+### {
+###   "errors": {
+###     "ThoiGianLamBai": ["Thời gian làm bài không được vượt quá 300 phút"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 15: ThoiGianLamBai is String ❌
+### Wrong data type
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": "một tiếng rưỡi"
+}
+
+### Expected Response (422):
+### {
+###   "errors": {
+###     "ThoiGianLamBai": ["Thời gian làm bài phải là số nguyên"]
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 16: TenDe Too Long ❌
+### Over 200 characters
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_TEACHER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi kiểm tra đánh giá năng lực môn Tin học THPT năm học 2025-2026 học kỳ I dành cho học sinh lớp 12 chuyên Tin - Trường THPT Chuyên Hà Nội Amsterdam - Bộ môn Tin học - Khoa học máy tính và Công nghệ thông tin",
+  "ThoiGianLamBai": 90
+}
+
+### Expected Response (422):
+### {
+###   "errors": {
+###     "TenDe": ["Tên đề thi không được vượt quá 200 ký tự"]
+###   }
+### }
+
+### ========================================
+### AUTHORIZATION ERROR TEST CASES
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 17: Student Trying to Create Exam ❌
+### Non-teacher user (403 Forbidden)
+### ---------------------------------------
+
+### First, login as student:
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "hocsinh1",
+  "MatKhau": "123456"
+}
+
+### Then try to create exam with student token:
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_STUDENT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": 90
+}
+
+### Expected Response (403):
+### {
+###   "success": false,
+###   "message": "Chỉ giáo viên mới có thể tạo đề thi"
+### }
+
+### ---------------------------------------
+### TEST CASE 18: Admin Trying to Create Exam ❌
+### Non-teacher user (403 Forbidden)
+### ---------------------------------------
+
+### First, login as admin:
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "admin",
+  "MatKhau": "123456"
+}
+
+### Then try to create exam with admin token:
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer YOUR_ADMIN_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": 90
+}
+
+### Expected: 403 Forbidden (admin is not a teacher)
+
+### ---------------------------------------
+### TEST CASE 19: No Authentication Token ❌
+### Unauthenticated request (401)
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": 90
+}
+
+### Expected Response (401):
+### {
+###   "message": "Unauthenticated."
+### }
+
+### ---------------------------------------
+### TEST CASE 20: Invalid Token ❌
+### Bad authentication token (401)
+### ---------------------------------------
+POST http://localhost:8000/api/tao-de-thi
+Authorization: Bearer INVALID_TOKEN_12345
+Content-Type: application/json
+
+{
+  "TenDe": "Đề thi Tin học",
+  "ThoiGianLamBai": 90
+}
+
+### Expected: 401 Unauthenticated
+
+### ========================================
+### VERIFICATION QUERIES
+### ========================================
+
+### After creating exams, verify in database:
+### 
+### SELECT * FROM DeThi ORDER BY MaDe DESC;
+### 
+### Should show:
+### - MaDe: DT001, DT002, DT003, ...
+### - TenDe: Your exam names
+### - ThoiGianLamBai: Your durations
+### - NgayTao: Current timestamps
+### - SoLuongCauHoi: 0 (initially)
+### - MaGV: GV001 (from teacher account)
+### - TrangThai: 1 (active)
+
+### ========================================
+### NOTES
+### ========================================
+### 
+### 1. Replace YOUR_TEACHER_TOKEN_HERE with actual teacher token
+### 2. Only teachers (GiaoVien table) can create exams
+### 3. MaDe is auto-generated: DT001, DT002, DT003, ...
+### 4. SoLuongCauHoi starts at 0 (add questions separately)
+### 5. TrangThai defaults to true (active)
+### 6. NgayTao is set to current timestamp automatically
+### 7. ThoiGianLamBai is in minutes (1-300)
+### 8. MoTa is optional (can be null)
+### 9. Default credentials:
+###    - Teacher: giaovien1 / 123456
+###    - Student: hocsinh1 / 123456
+###    - Admin: admin / 123456

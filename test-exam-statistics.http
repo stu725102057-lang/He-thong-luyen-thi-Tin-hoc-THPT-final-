@@ -1,0 +1,457 @@
+### ========================================
+### EXAM STATISTICS API TESTS (UR-03.5)
+### Thống Kê Kết Quả Đề Thi
+### ========================================
+
+### Prerequisites:
+### 1. Start server: php artisan serve
+### 2. Have students complete exams (KetQua records exist)
+### 3. Login to get authentication token
+
+### ---------------------------------------
+### STEP 1: Login to Get Token
+### ---------------------------------------
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "giaovien1",
+  "MatKhau": "123456"
+}
+
+### Save the token from response
+### Response: { "token": "your_token_here", ... }
+
+### ---------------------------------------
+### STEP 2: Verify Authentication
+### ---------------------------------------
+GET http://localhost:8000/api/me
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### ========================================
+### SUCCESS TEST CASES
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 1: Get Statistics for Exam with Submissions ✅
+### Should return complete statistics
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected Response (200):
+### {
+###   "success": true,
+###   "message": "Lấy thống kê kết quả thành công",
+###   "data": {
+###     "thong_tin_de_thi": {
+###       "MaDe": "DT001",
+###       "TenDe": "Đề thi Tin học THPT 2025",
+###       "ThoiGianLamBai": 90,
+###       "SoLuongCauHoi": 50,
+###       "NgayTao": "2025-12-06 10:00:00",
+###       "MoTa": "..."
+###     },
+###     "thong_ke": {
+###       "SoLuongDaNop": 25,
+###       "DiemTrungBinh": 7.2,
+###       "DiemCaoNhat": 9.8,
+###       "DiemThapNhat": 3.2,
+###       "SoLuongDat": 20,
+###       "SoLuongKhongDat": 5,
+###       "TyLeDat": "80%"
+###     },
+###     "phan_bo_diem": {
+###       "Xuat_sac": 3,
+###       "Gioi": 5,
+###       "Kha": 7,
+###       "Trung_binh_kha": 3,
+###       "Trung_binh": 2,
+###       "Yeu": 5
+###     },
+###     "danh_sach_ket_qua": [
+###       {
+###         "MaKQ": "KQ001",
+###         "MaHS": "HS001",
+###         "HoTenHS": "Nguyễn Văn A",
+###         "Lop": "12A1",
+###         "Truong": "THPT Nguyễn Huệ",
+###         "Diem": 9.8,
+###         "SoCauDung": 49,
+###         "SoCauSai": 1,
+###         "SoCauKhongLam": 0,
+###         "ThoiGianHoanThanh": "2025-12-06 11:25:30",
+###         "TrangThai": "Đạt",
+###         "SoLanViPham": 0
+###       }
+###       // ... more students
+###     ],
+###     "top_hoc_sinh": {
+###       "cao_nhat": [...],  // Top 3 highest
+###       "thap_nhat": [...]  // Top 3 lowest
+###     }
+###   }
+### }
+
+### ---------------------------------------
+### TEST CASE 2: Get Statistics for Different Exam ✅
+### Test with another exam code
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT002
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected: Statistics for DT002
+
+### ---------------------------------------
+### TEST CASE 3: Exam with No Submissions Yet ✅
+### Should return zero statistics
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT003
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected Response (200):
+### {
+###   "success": true,
+###   "message": "Chưa có học sinh nào hoàn thành đề thi này",
+###   "data": {
+###     "thong_tin_de_thi": {
+###       "MaDe": "DT003",
+###       "TenDe": "...",
+###       "ThoiGianLamBai": 90,
+###       "SoLuongCauHoi": 40
+###     },
+###     "thong_ke": {
+###       "SoLuongDaNop": 0,
+###       "DiemTrungBinh": 0,
+###       "DiemCaoNhat": 0,
+###       "DiemThapNhat": 0,
+###       "SoLuongDat": 0,
+###       "SoLuongKhongDat": 0,
+###       "TyLeDat": 0
+###     },
+###     "danh_sach_ket_qua": []
+###   }
+### }
+
+### ========================================
+### ERROR TEST CASES
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 4: Non-existent Exam ❌
+### Should return 404 Not Found
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT999
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected Response (404):
+### {
+###   "success": false,
+###   "message": "Không tìm thấy đề thi"
+### }
+
+### ---------------------------------------
+### TEST CASE 5: Invalid Exam Code Format ❌
+### Should return 404 Not Found
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/INVALID
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected: 404 Not Found
+
+### ---------------------------------------
+### TEST CASE 6: Empty Exam Code ❌
+### Should return 404 or method not allowed
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected: 404 Not Found
+
+### ---------------------------------------
+### TEST CASE 7: No Authentication Token ❌
+### Should return 401 Unauthenticated
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT001
+Content-Type: application/json
+
+### Expected Response (401):
+### {
+###   "message": "Unauthenticated."
+### }
+
+### ---------------------------------------
+### TEST CASE 8: Invalid Token ❌
+### Should return 401 Unauthenticated
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer INVALID_TOKEN_123456
+Content-Type: application/json
+
+### Expected: 401 Unauthenticated
+
+### ========================================
+### TESTING WITH DIFFERENT USER ROLES
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 9: Teacher Accessing Statistics ✅
+### Teachers should be able to view stats
+### ---------------------------------------
+
+### Login as teacher
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "giaovien1",
+  "MatKhau": "123456"
+}
+
+### Then get statistics
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_TEACHER_TOKEN
+Content-Type: application/json
+
+### Expected: 200 OK with full statistics
+
+### ---------------------------------------
+### TEST CASE 10: Student Accessing Statistics ✅
+### Students can also view (if no role restriction)
+### ---------------------------------------
+
+### Login as student
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "hocsinh1",
+  "MatKhau": "123456"
+}
+
+### Then get statistics
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_STUDENT_TOKEN
+Content-Type: application/json
+
+### Expected: 200 OK (or 403 if teacher-only restriction added)
+
+### ---------------------------------------
+### TEST CASE 11: Admin Accessing Statistics ✅
+### Admins should be able to view stats
+### ---------------------------------------
+
+### Login as admin
+POST http://localhost:8000/api/login
+Content-Type: application/json
+
+{
+  "TenDN": "admin",
+  "MatKhau": "123456"
+}
+
+### Then get statistics
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_ADMIN_TOKEN
+Content-Type: application/json
+
+### Expected: 200 OK with full statistics
+
+### ========================================
+### DATA VERIFICATION TESTS
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 12: Verify Statistics Calculation ✅
+### Create test data and verify calculations
+### ---------------------------------------
+
+### Step 1: Create test results (use Tinker or seeder)
+### php artisan tinker
+### 
+### App\Models\KetQua::create([
+###     'MaKQ' => 'KQ_TEST_001',
+###     'MaDe' => 'DT001',
+###     'MaHS' => 'HS001',
+###     'MaBaiLam' => 'BL001',
+###     'Diem' => 8.5,
+###     'SoCauDung' => 42,
+###     'SoCauSai' => 8,
+###     'SoCauKhongLam' => 0,
+###     'ThoiGianHoanThanh' => now()
+### ]);
+
+### Step 2: Get statistics
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Step 3: Verify:
+### - SoLuongDaNop should include the new result
+### - DiemTrungBinh should be recalculated
+### - Score distribution should update
+
+### ---------------------------------------
+### TEST CASE 13: Test Score Distribution ✅
+### Verify score ranges are correct
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Verify in response:
+### - Xuat_sac: Count of scores 9.0 - 10.0
+### - Gioi: Count of scores 8.0 - 8.99
+### - Kha: Count of scores 7.0 - 7.99
+### - Trung_binh_kha: Count of scores 6.0 - 6.99
+### - Trung_binh: Count of scores 5.0 - 5.99
+### - Yeu: Count of scores < 5.0
+
+### ---------------------------------------
+### TEST CASE 14: Test Top Students Feature ✅
+### Verify top 3 highest and lowest
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Verify in response.data.top_hoc_sinh:
+### - cao_nhat: Array with top 3 highest scores
+### - thap_nhat: Array with top 3 lowest scores
+### - Both should be sorted correctly
+
+### ---------------------------------------
+### TEST CASE 15: Test Sorting ✅
+### Verify results are sorted by score (desc)
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT001
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Verify danh_sach_ket_qua:
+### - First student should have highest score
+### - Last student should have lowest score
+### - All scores should be in descending order
+
+### ========================================
+### EDGE CASES
+### ========================================
+
+### ---------------------------------------
+### TEST CASE 16: Exam with Single Submission ✅
+### Test with only 1 result
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT_SINGLE
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected:
+### - SoLuongDaNop: 1
+### - DiemTrungBinh: Same as the single score
+### - DiemCaoNhat: Same as the single score
+### - DiemThapNhat: Same as the single score
+
+### ---------------------------------------
+### TEST CASE 17: Exam with All Pass ✅
+### All students scored >= 5
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT_ALL_PASS
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected:
+### - SoLuongKhongDat: 0
+### - TyLeDat: 100%
+### - phan_bo_diem.Yeu: 0
+
+### ---------------------------------------
+### TEST CASE 18: Exam with All Fail ✅
+### All students scored < 5
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT_ALL_FAIL
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected:
+### - SoLuongDat: 0
+### - TyLeDat: 0%
+### - phan_bo_diem.Yeu: Should equal SoLuongDaNop
+
+### ---------------------------------------
+### TEST CASE 19: Exam with Perfect Scores ✅
+### Students with 10.0 scores
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT_PERFECT
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected:
+### - DiemCaoNhat: 10.0
+### - phan_bo_diem.Xuat_sac: Should include 10.0 scores
+
+### ---------------------------------------
+### TEST CASE 20: Exam with Zero Scores ✅
+### Students with 0.0 scores
+### ---------------------------------------
+GET http://localhost:8000/api/thong-ke/DT_ZERO
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+### Expected:
+### - DiemThapNhat: 0.0
+### - All in phan_bo_diem.Yeu
+
+### ========================================
+### DATABASE VERIFICATION
+### ========================================
+
+### After running tests, verify in database:
+### 
+### -- Check KetQua records for an exam
+### SELECT 
+###     kq.MaKQ,
+###     kq.MaDe,
+###     hs.HoTen,
+###     kq.Diem,
+###     kq.SoCauDung,
+###     kq.ThoiGianHoanThanh
+### FROM KetQua kq
+### JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+### WHERE kq.MaDe = 'DT001'
+### ORDER BY kq.Diem DESC;
+###
+### -- Calculate statistics manually
+### SELECT 
+###     COUNT(*) as SoLuongDaNop,
+###     AVG(Diem) as DiemTrungBinh,
+###     MAX(Diem) as DiemCaoNhat,
+###     MIN(Diem) as DiemThapNhat,
+###     SUM(CASE WHEN Diem >= 5 THEN 1 ELSE 0 END) as SoLuongDat,
+###     SUM(CASE WHEN Diem < 5 THEN 1 ELSE 0 END) as SoLuongKhongDat
+### FROM KetQua
+### WHERE MaDe = 'DT001';
+
+### ========================================
+### NOTES
+### ========================================
+### 
+### 1. Replace YOUR_TOKEN_HERE with actual token from login
+### 2. All endpoints require authentication (401 if no token)
+### 3. Returns 404 if exam (MaDe) doesn't exist
+### 4. Returns 200 with empty stats if no submissions
+### 5. Results are sorted by score (highest first)
+### 6. Pass threshold is 5.0 (Diem >= 5)
+### 7. Score distribution uses Vietnamese grading scale
+### 8. Top students limited to 3 each (highest/lowest)
+### 9. Includes cheating violations (SoLanViPham)
+### 10. Default credentials:
+###     - Teacher: giaovien1 / 123456
+###     - Student: hocsinh1 / 123456
+###     - Admin: admin / 123456

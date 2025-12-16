@@ -1,0 +1,390 @@
+### ===============================================
+### TEST QUESTION BANK MANAGEMENT (UR-03.1)
+### CauHoiController - CRUD Operations
+### ===============================================
+
+@baseUrl = http://localhost:8000/api
+@token = YOUR_AUTH_TOKEN_HERE
+
+### ===============================================
+### 1. GET ALL QUESTIONS (index)
+### ===============================================
+
+### 1.1 Get all questions without filter
+GET {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+
+### 1.2 Filter by MaMon (using user-friendly parameter name)
+GET {{baseUrl}}/cau-hoi?MaMon=MH001
+Authorization: Bearer {{token}}
+
+### 1.3 Filter by MaNH (using database field name - backward compatible)
+GET {{baseUrl}}/cau-hoi?MaNH=MH001
+Authorization: Bearer {{token}}
+
+### 1.4 Filter by MucDo = De (Easy)
+GET {{baseUrl}}/cau-hoi?MucDo=De
+Authorization: Bearer {{token}}
+
+### 1.5 Filter by MucDo = TrungBinh (Medium - automatically converts to TB)
+GET {{baseUrl}}/cau-hoi?MucDo=TrungBinh
+Authorization: Bearer {{token}}
+
+### 1.6 Filter by MucDo = Kho (Hard)
+GET {{baseUrl}}/cau-hoi?MucDo=Kho
+Authorization: Bearer {{token}}
+
+### 1.7 Filter by DoKho (using database field name - backward compatible)
+GET {{baseUrl}}/cau-hoi?DoKho=TB
+Authorization: Bearer {{token}}
+
+### 1.8 Combined filters: MaMon + MucDo
+GET {{baseUrl}}/cau-hoi?MaMon=MH001&MucDo=De
+Authorization: Bearer {{token}}
+
+### ===============================================
+### 2. CREATE NEW QUESTION (store)
+### AUTO-GENERATES MaCH (CH001, CH002, CH003...)
+### ===============================================
+
+### 2.1 Create question with user-friendly field names
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Python là ngôn ngữ lập trình thuộc loại nào?",
+  "DapAnA": "Ngôn ngữ bậc thấp",
+  "DapAnB": "Ngôn ngữ bậc cao",
+  "DapAnC": "Ngôn ngữ máy",
+  "DapAnD": "Ngôn ngữ Assembly",
+  "DapAnDung": "B",
+  "MucDo": "De",
+  "MaMon": "NH001"
+}
+
+### 2.2 Create medium difficulty question (TrungBinh -> TB)
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Thuật toán sắp xếp nào có độ phức tạp O(n log n) trong trường hợp trung bình?",
+  "DapAnA": "Bubble Sort",
+  "DapAnB": "Selection Sort",
+  "DapAnC": "Quick Sort",
+  "DapAnD": "Insertion Sort",
+  "DapAnDung": "C",
+  "MucDo": "TrungBinh",
+  "MaMon": "NH001"
+}
+
+### 2.3 Create hard question
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Trong lập trình đối tượng, nguyên lý nào cho phép một lớp con kế thừa các thuộc tính và phương thức của lớp cha?",
+  "DapAnA": "Encapsulation",
+  "DapAnB": "Inheritance",
+  "DapAnC": "Polymorphism",
+  "DapAnD": "Abstraction",
+  "DapAnDung": "B",
+  "MucDo": "Kho",
+  "MaMon": "NH001"
+}
+
+### 2.4 Create with database field names (backward compatible)
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Câu lệnh nào dùng để xuất dữ liệu ra màn hình trong Python?",
+  "DapAnA": "echo()",
+  "DapAnB": "printf()",
+  "DapAnC": "print()",
+  "DapAnD": "cout()",
+  "DapAn": "C",
+  "DoKho": "De",
+  "MaNH": "NH001"
+}
+
+### 2.5 Test validation - Missing required field (NoiDung)
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "DapAnA": "Option A",
+  "DapAnB": "Option B",
+  "DapAnC": "Option C",
+  "DapAnD": "Option D",
+  "DapAnDung": "A",
+  "MucDo": "De",
+  "MaMon": "NH001"
+}
+
+### 2.6 Test validation - Invalid DapAnDung (not A/B/C/D)
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Test question?",
+  "DapAnA": "Option A",
+  "DapAnB": "Option B",
+  "DapAnC": "Option C",
+  "DapAnD": "Option D",
+  "DapAnDung": "E",
+  "MucDo": "De",
+  "MaMon": "NH001"
+}
+
+### 2.7 Test validation - Invalid MucDo
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Test question?",
+  "DapAnA": "Option A",
+  "DapAnB": "Option B",
+  "DapAnC": "Option C",
+  "DapAnD": "Option D",
+  "DapAnDung": "A",
+  "MucDo": "VeryHard",
+  "MaMon": "NH001"
+}
+
+### 2.8 Test validation - Non-existent MaMon
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Test question?",
+  "DapAnA": "Option A",
+  "DapAnB": "Option B",
+  "DapAnC": "Option C",
+  "DapAnD": "Option D",
+  "DapAnDung": "A",
+  "MucDo": "De",
+  "MaMon": "INVALID999"
+}
+
+### ===============================================
+### 3. UPDATE QUESTION (update)
+### Replace {id} with actual MaCH (e.g., CH001)
+### ===============================================
+
+### 3.1 Update question content only
+PUT {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Python là ngôn ngữ lập trình thuộc loại nào? (Câu hỏi đã được cập nhật)"
+}
+
+### 3.2 Update answers only
+PUT {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "DapAnA": "Ngôn ngữ bậc thấp (Updated)",
+  "DapAnB": "Ngôn ngữ bậc cao (Updated)",
+  "DapAnC": "Ngôn ngữ máy (Updated)",
+  "DapAnD": "Ngôn ngữ Assembly (Updated)"
+}
+
+### 3.3 Update correct answer (using DapAnDung)
+PUT {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "DapAnDung": "B"
+}
+
+### 3.4 Update difficulty level (MucDo -> DoKho)
+PUT {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MucDo": "TrungBinh"
+}
+
+### 3.5 Update multiple fields at once
+PUT {{baseUrl}}/cau-hoi/CH002
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Thuật toán sắp xếp Quick Sort có độ phức tạp trung bình là gì?",
+  "DapAnC": "O(n log n) - Corrected Answer",
+  "MucDo": "TrungBinh",
+  "DapAnDung": "C"
+}
+
+### 3.6 Update with database field names (backward compatible)
+PUT {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "DoKho": "Kho",
+  "DapAn": "B",
+  "MaNH": "NH001"
+}
+
+### 3.7 Test update validation - Invalid DapAnDung
+PUT {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "DapAnDung": "X"
+}
+
+### 3.8 Test update validation - Invalid MucDo
+PUT {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MucDo": "SuperHard"
+}
+
+### 3.9 Test update - Non-existent question
+PUT {{baseUrl}}/cau-hoi/CH999
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "This should fail"
+}
+
+### ===============================================
+### 4. DELETE QUESTION (destroy)
+### Replace {id} with actual MaCH
+### ===============================================
+
+### 4.1 Delete question (success case)
+DELETE {{baseUrl}}/cau-hoi/CH001
+Authorization: Bearer {{token}}
+
+### 4.2 Delete question that doesn't exist
+DELETE {{baseUrl}}/cau-hoi/CH999
+Authorization: Bearer {{token}}
+
+### 4.3 Delete question used in exam (should fail with error)
+# First, make sure CH002 is used in some exams, then:
+DELETE {{baseUrl}}/cau-hoi/CH002
+Authorization: Bearer {{token}}
+
+### ===============================================
+### 5. PERMISSION TESTS
+### Test with different user roles
+### ===============================================
+
+### 5.1 Student tries to create question (should fail - 403)
+# Login as student first, then:
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Unauthorized test",
+  "DapAnA": "A",
+  "DapAnB": "B",
+  "DapAnC": "C",
+  "DapAnD": "D",
+  "DapAnDung": "A",
+  "MucDo": "De",
+  "MaMon": "NH001"
+}
+
+### 5.2 Student can view questions (should succeed)
+GET {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+
+### 5.3 Teacher creates question (should succeed)
+# Login as teacher, then use any create request above
+
+### 5.4 Admin creates question (should succeed)
+# Login as admin, then use any create request above
+
+### ===============================================
+### 6. RESPONSE FORMAT VERIFICATION
+### All responses should have consistent format:
+### {
+###   "success": true/false,
+###   "message": "...",
+###   "data": {...} or "errors": {...}
+### }
+### ===============================================
+
+### 6.1 Verify success response format
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Test response format",
+  "DapAnA": "A", "DapAnB": "B", "DapAnC": "C", "DapAnD": "D",
+  "DapAnDung": "A",
+  "MucDo": "De",
+  "MaMon": "NH001"
+}
+
+### 6.2 Verify error response format
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Missing required fields"
+}
+
+### ===============================================
+### 7. FIELD NAME MAPPING TESTS
+### Verify both user-friendly and database names work
+### ===============================================
+
+### 7.1 Create with user-friendly names (DapAnDung, MucDo, MaMon)
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Test field mapping - user names",
+  "DapAnA": "A", "DapAnB": "B", "DapAnC": "C", "DapAnD": "D",
+  "DapAnDung": "A",
+  "MucDo": "TrungBinh",
+  "MaMon": "NH001"
+}
+
+### 7.2 Create with database names (DapAn, DoKho, MaNH)
+POST {{baseUrl}}/cau-hoi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NoiDung": "Test field mapping - database names",
+  "DapAnA": "A", "DapAnB": "B", "DapAnC": "C", "DapAnD": "D",
+  "DapAn": "B",
+  "DoKho": "TB",
+  "MaNH": "NH001"
+}
+
+### 7.3 Verify response uses user-friendly names
+GET {{baseUrl}}/cau-hoi?MaMon=NH001
+Authorization: Bearer {{token}}
+
+### ===============================================
+### END OF TESTS
+### ===============================================

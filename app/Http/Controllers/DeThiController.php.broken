@@ -1,0 +1,734 @@
+﻿<?php
+
+namespace A    public function __construct()
+    {
+        $this->middleware('auth:sanctum')->except(['layDeThiMau']);
+    }
+
+    /**
+     * UR-03.5: Thống kê lớp học
+     */rs;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use App\Models\DeThi;
+use App\Models\GiaoVien;
+use App\Models\KetQua;
+use Carbon\Carbon;
+
+class DeThiController extends Controller
+{
+    /**
+     * Constructor - YÃªu cáº§u authentication
+     * Sá»¬A Lá»–I: Loáº¡i trá»« hÃ m 'layDeThiMau' Ä‘á»ƒ KhÃ¡ch cÃ³ thá»ƒ xem Ä‘Æ°á»£c
+     */
+    public function __construct()
+    {
+        // YÃªu cáº§u Ä‘Äƒng nháº­p vá»›i táº¥t cáº£ cÃ¡c hÃ m, TRá»ª hÃ m layDeThiMau
+        $this->middleware('auth:sanctum')->except(['layDeThiMau']);
+          } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi tạo đề thi',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * UR-03.5: Thống kê lớp học
+     */
+    public function getClassStatistics(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if (!in_array($user->Role, ['giaovien', 'admin'])) {
+                return response()->json(['success' => false, 'message' => 'Chỉ giáo viên có quyền xem'], 403);
+            }
+
+            $students = DB::table('TaiKhoan')->where('Role', 'hocsinh')->get();
+            if ($students->isEmpty()) {
+                return response()->json(['success' => true, 'data' => [
+                    'summary' => ['totalStudents' => 0, 'averageScore' => 0, 'passRate' => 0],
+                    'topStudents' => [], 'weakStudents' => [], 'scoreDistribution' => [], 'studentDetails' => []
+                ]]);
+            }
+
+            $studentScores = DB::table('BaiThi')
+                ->join('TaiKhoan', 'BaiThi.MaTK', '=', 'TaiKhoan.MaTK')
+                ->select('TaiKhoan.MaTK', 'TaiKhoan.TenTK',
+                    DB::raw('AVG(BaiThi.Diem) as avg_score'),
+                    DB::raw('MAX(BaiThi.Diem) as max_score'),
+                    DB::raw('COUNT(*) as total_exams'))
+                ->where('TaiKhoan.Role', 'hocsinh')
+                ->where('BaiThi.TrangThai', 'hoanthanh')
+                ->groupBy('TaiKhoan.MaTK', 'TaiKhoan.TenTK')
+                ->get();
+
+            $totalStudents = $students->count();
+            $averageScore = $studentScores->isEmpty() ? 0 : round($studentScores->avg('avg_score'), 2);
+            $passedStudents = $studentScores->filter(fn($s) => $s->avg_score >= 5)->count();
+            $passRate = $studentScores->isEmpty() ? 0 : round(($passedStudents / $studentScores->count()) * 100, 2);
+
+            $topStudents = $studentScores->sortByDesc('avg_score')->take(5)->values()->map(fn($s) => [
+                'TenTK' => $s->TenTK, 'avg_score' => round($s->avg_score, 2), 'total_exams' => $s->total_exams
+            ]);
+
+            $weakStudents = $studentScores->sortBy('avg_score')->take(5)->values()->map(fn($s) => [
+                'TenTK' => $s->TenTK, 'avg_score' => round($s->avg_score, 2), 'total_exams' => $s->total_exams
+            ]);
+
+            $scoreDistribution = [
+                ['range' => '0-2', 'count' => 0], ['range' => '2-4', 'count' => 0],
+                ['range' => '4-5', 'count' => 0], ['range' => '5-6.5', 'count' => 0],
+                ['range' => '6.5-8', 'count' => 0], ['range' => '8-10', 'count' => 0]
+            ];
+
+            foreach ($studentScores as $s) {
+                $score = $s->avg_score;
+                if ($score < 2) $scoreDistribution[0]['count']++;
+                elseif ($score < 4) $scoreDistribution[1]['count']++;
+                elseif ($score < 5) $scoreDistribution[2]['count']++;
+                elseif ($score < 6.5) $scoreDistribution[3]['count']++;
+                elseif ($score < 8) $scoreDistribution[4]['count']++;
+                else $scoreDistribution[5]['count']++;
+            }
+
+            $studentDetails = $students->map(function($student) use ($studentScores) {
+                $scoreData = $studentScores->firstWhere('MaTK', $student->MaTK);
+                return [
+                    'TenTK' => $student->TenTK,
+                    'avg_score' => $scoreData ? round($scoreData->avg_score, 2) : 0,
+                    'total_exams' => $scoreData ? $scoreData->total_exams : 0,
+                    'status' => $scoreData ? ($scoreData->avg_score >= 5 ? 'Đạt' : 'Chưa đạt') : 'Chưa thi'
+                ];
+            })->sortByDesc('avg_score')->values();
+
+            return response()->json(['success' => true, 'data' => [
+                'summary' => ['totalStudents' => $totalStudents, 'averageScore' => $averageScore, 'passRate' => $passRate],
+                'topStudents' => $topStudents, 'weakStudents' => $weakStudents,
+                'scoreDistribution' => $scoreDistribution, 'studentDetails' => $studentDetails
+            ]]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+}
+*
+     * Táº¡o Ä‘á» thi má»›i (UR-03.3)
+     * Chá»‰ giÃ¡o viÃªn má»›i cÃ³ thá»ƒ táº¡o Ä‘á» thi
+     */
+    public function taoDeThi(Request $request)
+    {
+        // 1. VALIDATE Dá»® LIá»†U Äáº¦U VÃ€O
+        $validator = Validator::make($request->all(), [
+            'TenDe' => 'required|string|max:200',
+            'ThoiGianLamBai' => 'required|integer|min:1|max:300', // 1-300 phÃºt
+            'MoTa' => 'nullable|string',
+        ], [
+            'TenDe.required' => 'TÃªn Ä‘á» thi khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng',
+            'TenDe.max' => 'TÃªn Ä‘á» thi khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 200 kÃ½ tá»±',
+            'ThoiGianLamBai.required' => 'Thá»i gian lÃ m bÃ i khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng',
+            'ThoiGianLamBai.integer' => 'Thá»i gian lÃ m bÃ i pháº£i lÃ  sá»‘ nguyÃªn',
+            'ThoiGianLamBai.min' => 'Thá»i gian lÃ m bÃ i pháº£i Ã­t nháº¥t 1 phÃºt',
+            'ThoiGianLamBai.max' => 'Thá»i gian lÃ m bÃ i khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 300 phÃºt',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dá»¯ liá»‡u khÃ´ng há»£p lá»‡',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // 2. Láº¤Y THÃ”NG TIN NGÆ¯á»œI DÃ™NG HIá»†N Táº I
+            $user = $request->user();
+            
+            // 3. KIá»‚M TRA XEM USER CÃ“ PHáº¢I LÃ€ GIÃO VIÃŠN KHÃ”NG
+            // LÆ°u Ã½: Äáº£m báº£o model GiaoVien cÃ³ cá»™t MaTK liÃªn káº¿t vá»›i users
+            $giaoVien = GiaoVien::where('MaTK', $user->MaTK)->first();
+            
+            if (!$giaoVien) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chá»‰ giÃ¡o viÃªn má»›i cÃ³ thá»ƒ táº¡o Ä‘á» thi'
+                ], 403);
+            }
+
+            // 4. Táº O MÃƒ Äá»€ THI Tá»° Äá»˜NG (DT001, DT002, ...)
+            $lastDeThi = DeThi::orderBy('MaDe', 'desc')->first();
+            
+            if ($lastDeThi) {
+                // Láº¥y sá»‘ tá»« mÃ£ cuá»‘i cÃ¹ng (DT001 -> 001 -> 1)
+                // Sá»­ dá»¥ng regex Ä‘á»ƒ tÃ¡ch sá»‘ an toÃ n hÆ¡n
+                if (preg_match('/DT(\d+)/', $lastDeThi->MaDe, $matches)) {
+                    $newNumber = intval($matches[1]) + 1;
+                } else {
+                    $newNumber = 1;
+                }
+            } else {
+                $newNumber = 1;
+            }
+            
+            // Táº¡o mÃ£ má»›i vá»›i format DT + 3 chá»¯ sá»‘ (DT001, DT002, ...)
+            $maDe = 'DT' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+
+            // 5. Táº O Báº¢N GHI Äá»€ THI Má»šI
+            $deThi = DeThi::create([
+                'MaDe' => $maDe,
+                'TenDe' => $request->TenDe,
+                'ThoiGianLamBai' => $request->ThoiGianLamBai,
+                'NgayTao' => Carbon::now(),
+                'SoLuongCauHoi' => 0, // Ban Ä‘áº§u chÆ°a cÃ³ cÃ¢u há»i
+                'MaGV' => $giaoVien->MaGV,
+                'MoTa' => $request->MoTa,
+                'TrangThai' => true, // Máº·c Ä‘á»‹nh lÃ  Ä‘ang hoáº¡t Ä‘á»™ng
+            ]);
+
+            // 6. TRáº¢ Vá»€ Káº¾T QUáº¢ THÃ€NH CÃ”NG
+            return response()->json([
+                'success' => true,
+                'message' => 'Táº¡o Ä‘á» thi thÃ nh cÃ´ng',
+                'data' => [
+                    'MaDe' => $deThi->MaDe,
+                    'TenDe' => $deThi->TenDe,
+                    'ThoiGianLamBai' => $deThi->ThoiGianLamBai,
+                    'NgayTao' => $deThi->NgayTao->format('Y-m-d H:i:s'),
+                    'SoLuongCauHoi' => $deThi->SoLuongCauHoi,
+                    'MaGV' => $deThi->MaGV,
+                    'TenGiaoVien' => $giaoVien->HoTen,
+                    'MoTa' => $deThi->MoTa,
+                    'TrangThai' => $deThi->TrangThai ? 'Hoáº¡t Ä‘á»™ng' : 'KhÃ´ng hoáº¡t Ä‘á»™ng'
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CÃ³ lá»—i xáº£y ra khi táº¡o Ä‘á» thi',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Thá»‘ng kÃª káº¿t quáº£ cá»§a má»™t Ä‘á» thi (UR-03.5)
+     * Hiá»ƒn thá»‹ cÃ¡c chá»‰ sá»‘ thá»‘ng kÃª vÃ  danh sÃ¡ch káº¿t quáº£ cá»§a há»c sinh
+     */
+    public function thongKeKetQua(Request $request, $maDe)
+    {
+        try {
+            // 1. TÃŒM Äá»€ THI THEO MÃƒ
+            $deThi = DeThi::where('MaDe', $maDe)->first();
+            
+            if (!$deThi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'KhÃ´ng tÃ¬m tháº¥y Ä‘á» thi'
+                ], 404);
+            }
+
+            // 2. Láº¤Y Táº¤T Cáº¢ Káº¾T QUáº¢ Cá»¦A Äá»€ THI NÃ€Y
+            $ketQuas = KetQua::where('MaDe', $maDe)
+                ->with(['hocSinh', 'baiLam'])
+                ->get();
+
+            // 3. TÃNH TOÃN CÃC CHá»ˆ Sá» THá»NG KÃŠ
+            $soLuongDaNop = $ketQuas->count();
+            
+            // Náº¿u chÆ°a cÃ³ ai ná»™p bÃ i
+            if ($soLuongDaNop == 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'ChÆ°a cÃ³ há»c sinh nÃ o hoÃ n thÃ nh Ä‘á» thi nÃ y',
+                    'data' => [
+                        'thong_tin_de_thi' => [
+                            'MaDe' => $deThi->MaDe,
+                            'TenDe' => $deThi->TenDe,
+                            'ThoiGianLamBai' => $deThi->ThoiGianLamBai,
+                            'SoLuongCauHoi' => $deThi->SoLuongCauHoi,
+                        ],
+                        'thong_ke' => [
+                            'SoLuongDaNop' => 0,
+                            'DiemTrungBinh' => 0,
+                            'DiemCaoNhat' => 0,
+                            'DiemThapNhat' => 0,
+                            'SoLuongDat' => 0,
+                            'SoLuongKhongDat' => 0,
+                            'TyLeDat' => 0,
+                        ],
+                        'danh_sach_ket_qua' => []
+                    ]
+                ], 200);
+            }
+
+            // TÃ­nh Ä‘iá»ƒm trung bÃ¬nh
+            $diemTrungBinh = round($ketQuas->avg('Diem'), 2);
+            
+            // TÃ¬m Ä‘iá»ƒm cao nháº¥t vÃ  tháº¥p nháº¥t
+            $diemCaoNhat = $ketQuas->max('Diem');
+            $diemThapNhat = $ketQuas->min('Diem');
+            
+            // Äáº¿m sá»‘ lÆ°á»£ng Ä‘áº¡t vÃ  khÃ´ng Ä‘áº¡t (Ä‘iá»ƒm >= 5 lÃ  Ä‘áº¡t)
+            $soLuongDat = $ketQuas->where('Diem', '>=', 5)->count();
+            $soLuongKhongDat = $ketQuas->where('Diem', '<', 5)->count();
+            
+            // TÃ­nh tá»· lá»‡ Ä‘áº¡t (%)
+            $tyLeDat = round(($soLuongDat / $soLuongDaNop) * 100, 2);
+
+            // 4. CHUáº¨N Bá»Š DANH SÃCH Káº¾T QUáº¢ CHI TIáº¾T
+            $danhSachKetQua = $ketQuas->map(function ($ketQua) {
+                return [
+                    'MaKQ' => $ketQua->MaKQ,
+                    'MaHS' => $ketQua->MaHS,
+                    'HoTenHS' => $ketQua->hocSinh ? $ketQua->hocSinh->HoTen : 'N/A',
+                    'Lop' => $ketQua->hocSinh ? $ketQua->hocSinh->Lop : 'N/A',
+                    'Truong' => $ketQua->hocSinh ? $ketQua->hocSinh->Truong : 'N/A',
+                    'Diem' => $ketQua->Diem,
+                    'SoCauDung' => $ketQua->SoCauDung,
+                    'SoCauSai' => $ketQua->SoCauSai,
+                    'SoCauKhongLam' => $ketQua->SoCauKhongLam,
+                    'ThoiGianHoanThanh' => $ketQua->ThoiGianHoanThanh ? 
+                        Carbon::parse($ketQua->ThoiGianHoanThanh)->format('Y-m-d H:i:s') : null,
+                    'TrangThai' => $ketQua->Diem >= 5 ? 'Äáº¡t' : 'KhÃ´ng Ä‘áº¡t',
+                    'SoLanViPham' => $ketQua->baiLam ? $ketQua->baiLam->SoLanViPham : 0,
+                ];
+            });
+
+            // Sáº¯p xáº¿p theo Ä‘iá»ƒm giáº£m dáº§n (cao nháº¥t lÃªn Ä‘áº§u)
+            $danhSachKetQua = $danhSachKetQua->sortByDesc('Diem')->values();
+
+            // 5. TRáº¢ Vá»€ Káº¾T QUáº¢ THá»NG KÃŠ
+            return response()->json([
+                'success' => true,
+                'message' => 'Láº¥y thá»‘ng kÃª káº¿t quáº£ thÃ nh cÃ´ng',
+                'data' => [
+                    'thong_tin_de_thi' => [
+                        'MaDe' => $deThi->MaDe,
+                        'TenDe' => $deThi->TenDe,
+                        'ThoiGianLamBai' => $deThi->ThoiGianLamBai,
+                        'SoLuongCauHoi' => $deThi->SoLuongCauHoi,
+                        'NgayTao' => Carbon::parse($deThi->NgayTao)->format('Y-m-d H:i:s'),
+                        'MoTa' => $deThi->MoTa,
+                    ],
+                    'thong_ke' => [
+                        'SoLuongDaNop' => $soLuongDaNop,
+                        'DiemTrungBinh' => $diemTrungBinh,
+                        'DiemCaoNhat' => $diemCaoNhat,
+                        'DiemThapNhat' => $diemThapNhat,
+                        'SoLuongDat' => $soLuongDat,
+                        'SoLuongKhongDat' => $soLuongKhongDat,
+                        'TyLeDat' => $tyLeDat . '%',
+                    ],
+                    'phan_bo_diem' => [
+                        'Xuat_sac' => $ketQuas->whereBetween('Diem', [9, 10])->count(),  // 9-10
+                        'Gioi' => $ketQuas->whereBetween('Diem', [8, 8.99])->count(),     // 8-8.99
+                        'Kha' => $ketQuas->whereBetween('Diem', [7, 7.99])->count(),      // 7-7.99
+                        'Trung_binh_kha' => $ketQuas->whereBetween('Diem', [6, 6.99])->count(), // 6-6.99
+                        'Trung_binh' => $ketQuas->whereBetween('Diem', [5, 5.99])->count(),     // 5-5.99
+                        'Yeu' => $ketQuas->where('Diem', '<', 5)->count(),                // < 5
+                    ],
+                    'danh_sach_ket_qua' => $danhSachKetQua,
+                    'top_hoc_sinh' => [
+                        'cao_nhat' => $danhSachKetQua->take(3),  // Top 3 Ä‘iá»ƒm cao nháº¥t
+                        'thap_nhat' => $danhSachKetQua->reverse()->take(3)->reverse(),  // Top 3 Ä‘iá»ƒm tháº¥p nháº¥t
+                    ]
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CÃ³ lá»—i xáº£y ra khi láº¥y thá»‘ng kÃª',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * UR-01.4: KhÃ¡ch xem danh sÃ¡ch Ä‘á» thi máº«u (Public)
+     * API nÃ y khÃ´ng cáº§n Ä‘Äƒng nháº­p
+     */
+    public function layDeThiMau()
+    {
+        // Láº¥y 5 Ä‘á» má»›i nháº¥t Ä‘á»ƒ hiá»ƒn thá»‹ ra trang chá»§ cho khÃ¡ch
+        $deThi = DeThi::orderBy('created_at', 'desc')
+                      ->select('MaDe', 'TenDe', 'ThoiGianLamBai', 'MoTa', 'NgayTao') // Chá»‰ láº¥y thÃ´ng tin cÆ¡ báº£n
+                      ->limit(5)
+                      ->get();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Danh sÃ¡ch Ä‘á» thi máº«u (DÃ nh cho khÃ¡ch)',
+            'data' => $deThi
+        ]);
+    }
+
+    /**
+     * UR-02.1: Láº¥y danh sÃ¡ch Ä‘á» thi cho há»c sinh Ä‘Ã£ Ä‘Äƒng nháº­p
+     * Hiá»ƒn thá»‹ táº¥t cáº£ Ä‘á» thi cÃ³ sáºµn
+     */
+    public function layDanhSachDeThi(Request $request)
+    {
+        try {
+            $query = DeThi::with('giaoVien:MaGV,HoTen')
+                ->where('TrangThai', true)
+                ->orderBy('NgayTao', 'desc');
+
+            // Lá»c theo mÃ´n (náº¿u cÃ³)
+            if ($request->has('MaNH')) {
+                $query->where('MaNH', $request->MaNH);
+            }
+
+            $deThi = $query->get()->map(function($de) {
+                return [
+                    'MaDe' => $de->MaDe,
+                    'TenDe' => $de->TenDe,
+                    'ThoiGianLamBai' => $de->ThoiGianLamBai,
+                    'SoLuongCauHoi' => $de->SoLuongCauHoi,
+                    'MoTa' => $de->MoTa,
+                    'NgayTao' => $de->NgayTao,
+                    'TenGiaoVien' => $de->giaoVien ? $de->giaoVien->HoTen : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Láº¥y danh sÃ¡ch Ä‘á» thi thÃ nh cÃ´ng',
+                'data' => $deThi,
+                'total' => $deThi->count()
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CÃ³ lá»—i xáº£y ra khi láº¥y danh sÃ¡ch Ä‘á» thi',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * UR-02.1: Láº¥y chi tiáº¿t Ä‘á» thi (khÃ´ng bao gá»“m cÃ¢u há»i)
+     * Hiá»ƒn thá»‹ thÃ´ng tin Ä‘á» trÆ°á»›c khi báº¯t Ä‘áº§u lÃ m
+     */
+    public function layChiTietDeThi($maDe)
+    {
+        try {
+            $deThi = DeThi::with('giaoVien:MaGV,HoTen')
+                ->where('MaDe', $maDe)
+                ->first();
+
+            if (!$deThi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'KhÃ´ng tÃ¬m tháº¥y Ä‘á» thi'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Láº¥y chi tiáº¿t Ä‘á» thi thÃ nh cÃ´ng',
+                'data' => [
+                    'MaDe' => $deThi->MaDe,
+                    'TenDe' => $deThi->TenDe,
+                    'ThoiGianLamBai' => $deThi->ThoiGianLamBai,
+                    'SoLuongCauHoi' => $deThi->SoLuongCauHoi,
+                    'MoTa' => $deThi->MoTa,
+                    'NgayTao' => $deThi->NgayTao,
+                    'TenGiaoVien' => $deThi->giaoVien ? $deThi->giaoVien->HoTen : null,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CÃ³ lá»—i xáº£y ra',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * UR-02.1: Báº¯t Ä‘áº§u lÃ m bÃ i thi
+     * Táº¡o bÃ i lÃ m má»›i vÃ  tráº£ vá» cÃ¢u há»i
+     */
+    public function batDauLamBai(Request $request, $maDe)
+    {
+        try {
+            $user = $request->user();
+            
+            // Kiá»ƒm tra user cÃ³ pháº£i há»c sinh khÃ´ng
+            $hocSinh = \App\Models\HocSinh::where('MaTK', $user->MaTK)->first();
+            if (!$hocSinh) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chá»‰ há»c sinh má»›i cÃ³ thá»ƒ lÃ m bÃ i thi'
+                ], 403);
+            }
+
+            // Kiá»ƒm tra Ä‘á» thi cÃ³ tá»“n táº¡i khÃ´ng
+            $deThi = DeThi::where('MaDe', $maDe)->first();
+            if (!$deThi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'KhÃ´ng tÃ¬m tháº¥y Ä‘á» thi'
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            // Táº¡o mÃ£ bÃ i lÃ m tá»± Ä‘á»™ng
+            $lastBaiLam = \App\Models\BaiLam::orderBy('MaBaiLam', 'desc')->first();
+            if ($lastBaiLam && preg_match('/BL(\d+)/', $lastBaiLam->MaBaiLam, $matches)) {
+                $newNumber = intval($matches[1]) + 1;
+            } else {
+                $newNumber = 1;
+            }
+            $maBaiLam = 'BL' . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+
+            // Táº¡o bÃ i lÃ m má»›i
+            $baiLam = \App\Models\BaiLam::create([
+                'MaBaiLam' => $maBaiLam,
+                'MaHS' => $hocSinh->MaHS,
+                'MaDe' => $maDe,
+                'ThoiGianBatDau' => now(),
+                'TrangThai' => 'DangLam',
+                'DSCauTraLoi' => [],
+                'SoLanViPham' => 0,
+            ]);
+
+            // Láº¥y danh sÃ¡ch cÃ¢u há»i cá»§a Ä‘á» thi
+            $cauHois = DB::table('ChiTietDeThi')
+                ->join('CauHoi', 'ChiTietDeThi.MaCauHoi', '=', 'CauHoi.MaCauHoi')
+                ->where('ChiTietDeThi.MaDe', $maDe)
+                ->select('CauHoi.MaCauHoi', 'CauHoi.NoiDung', 'CauHoi.DapAnA', 
+                        'CauHoi.DapAnB', 'CauHoi.DapAnC', 'CauHoi.DapAnD', 'ChiTietDeThi.ThuTu')
+                ->orderBy('ChiTietDeThi.ThuTu')
+                ->get();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Báº¯t Ä‘áº§u lÃ m bÃ i thÃ nh cÃ´ng',
+                'data' => [
+                    'MaBaiLam' => $baiLam->MaBaiLam,
+                    'MaDe' => $deThi->MaDe,
+                    'TenDe' => $deThi->TenDe,
+                    'ThoiGianLamBai' => $deThi->ThoiGianLamBai,
+                    'ThoiGianBatDau' => $baiLam->ThoiGianBatDau,
+                    'SoLuongCauHoi' => $cauHois->count(),
+                    'CauHoi' => $cauHois->values()
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'CÃ³ lá»—i xáº£y ra khi báº¯t Ä‘áº§u lÃ m bÃ i',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * UR-03.4: Sinh Ä‘á» thi ngáº«u nhiÃªn
+     * Tá»± Ä‘á»™ng chá»n cÃ¢u há»i tá»« ngÃ¢n hÃ ng theo tiÃªu chÃ­
+     */
+    public function taoDeThiNgauNhien(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'TenDe' => 'required|string|max:200',
+            'ThoiGianLamBai' => 'required|integer|min:1|max:300',
+            'SoLuongCauHoi' => 'required|integer|min:1|max:100',
+            'MaNH' => 'required|string|exists:NganHangCauHoi,MaNH',
+            'DoKho' => 'nullable|in:De,TrungBinh,Kho',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dá»¯ liá»‡u khÃ´ng há»£p lá»‡',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $user = $request->user();
+            $giaoVien = \App\Models\GiaoVien::where('MaTK', $user->MaTK)->first();
+            
+            if (!$giaoVien) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chá»‰ giÃ¡o viÃªn má»›i cÃ³ thá»ƒ táº¡o Ä‘á» thi'
+                ], 403);
+            }
+
+            DB::beginTransaction();
+
+            // Táº¡o mÃ£ Ä‘á» thi
+            $lastDeThi = DeThi::orderBy('MaDe', 'desc')->first();
+            $newNumber = $lastDeThi && preg_match('/DT(\d+)/', $lastDeThi->MaDe, $matches) 
+                ? intval($matches[1]) + 1 : 1;
+            $maDe = 'DT' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+
+            // Láº¥y cÃ¢u há»i ngáº«u nhiÃªn
+            $query = \App\Models\CauHoi::where('MaNH', $request->MaNH);
+            if ($request->DoKho) {
+                $query->where('DoKho', $request->DoKho);
+            }
+            
+            $cauHois = $query->inRandomOrder()
+                ->limit($request->SoLuongCauHoi)
+                ->get();
+
+            if ($cauHois->count() < $request->SoLuongCauHoi) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => "KhÃ´ng Ä‘á»§ cÃ¢u há»i. Chá»‰ cÃ³ {$cauHois->count()} cÃ¢u phÃ¹ há»£p."
+                ], 400);
+            }
+
+            // Táº¡o Ä‘á» thi
+            $deThi = DeThi::create([
+                'MaDe' => $maDe,
+                'TenDe' => $request->TenDe,
+                'ThoiGianLamBai' => $request->ThoiGianLamBai,
+                'NgayTao' => now(),
+                'SoLuongCauHoi' => $cauHois->count(),
+                'MaGV' => $giaoVien->MaGV,
+                'MoTa' => $request->MoTa ?? "Äá» thi ngáº«u nhiÃªn - {$request->SoLuongCauHoi} cÃ¢u",
+                'TrangThai' => true,
+            ]);
+
+            // ThÃªm cÃ¢u há»i vÃ o Ä‘á» thi
+            foreach ($cauHois as $index => $cauHoi) {
+                DB::table('ChiTietDeThi')->insert([
+                    'MaDe' => $maDe,
+                    'MaCauHoi' => $cauHoi->MaCauHoi,
+                    'ThuTu' => $index + 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Táº¡o Ä‘á» thi ngáº«u nhiÃªn thÃ nh cÃ´ng',
+                'data' => [
+                    'MaDe' => $deThi->MaDe,
+                    'TenDe' => $deThi->TenDe,
+                    'SoLuongCauHoi' => $deThi->SoLuongCauHoi,
+                    'ThoiGianLamBai' => $deThi->ThoiGianLamBai,
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'CÃ³ lá»—i xáº£y ra',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * UR-03.3: Táº¡o Ä‘á» thi THá»¦ CÃ”NG
+     * GiÃ¡o viÃªn tá»± chá»n tá»«ng cÃ¢u há»i cá»¥ thá»ƒ
+     */
+    public function createManualExam(Request $request)
+    {
+        try {
+            // 1. VALIDATE Dá»® LIá»†U
+            $validator = Validator::make($request->all(), [
+                'TenDe' => 'required|string|max:255',
+                'ChuDe' => 'required|string|max:255',
+                'ThoiGianLamBai' => 'required|integer|min:1',
+                'DanhSachCauHoi' => 'required|array|min:1',
+                'DanhSachCauHoi.*' => 'string|exists:CauHoi,MaCH',
+                'MoTa' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dá»¯ liá»‡u khÃ´ng há»£p lá»‡',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = $request->user();
+            
+            // 2. KIá»‚M TRA QUYá»€N (chá»‰ giÃ¡o viÃªn vÃ  admin)
+            if (!in_array($user->Role, ['giaovien', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chá»‰ giÃ¡o viÃªn má»›i cÃ³ quyá»n táº¡o Ä‘á» thi'
+                ], 403);
+            }
+
+            DB::beginTransaction();
+
+            // 3. Táº O MÃƒ Äá»€ THI Tá»° Äá»˜NG
+            $maDe = 'DE' . str_pad(DeThi::count() + 1, 3, '0', STR_PAD_LEFT);
+
+            // 4. Táº O Äá»€ THI
+            $deThi = DeThi::create([
+                'MaDe' => $maDe,
+                'TenDe' => $request->TenDe,
+                'ChuDe' => $request->ChuDe,
+                'ThoiGianLamBai' => $request->ThoiGianLamBai,
+                'SoLuongCauHoi' => count($request->DanhSachCauHoi),
+                'MoTa' => $request->MoTa ?? '',
+                'MaGV' => $user->MaTK,
+                'TrangThai' => 1
+            ]);
+
+            // 5. THÃŠM CÃC CÃ‚U Há»ŽI VÃ€O Äá»€ THI
+            foreach ($request->DanhSachCauHoi as $index => $maCH) {
+                DB::table('ChiTietDeThi')->insert([
+                    'MaDe' => $maDe,
+                    'MaCH' => $maCH,
+                    'STT' => $index + 1,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Táº¡o Ä‘á» thi thá»§ cÃ´ng thÃ nh cÃ´ng',
+                'data' => [
+                    'MaDe' => $deThi->MaDe,
+                    'TenDe' => $deThi->TenDe,
+                    'SoLuongCauHoi' => $deThi->SoLuongCauHoi,
+                    'ThoiGianLamBai' => $deThi->ThoiGianLamBai,
+                    'DanhSachCauHoi' => $request->DanhSachCauHoi
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'CÃ³ lá»—i xáº£y ra khi táº¡o Ä‘á» thi',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+}@
+
+

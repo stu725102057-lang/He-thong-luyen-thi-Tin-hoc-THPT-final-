@@ -181,6 +181,7 @@ return new class extends Migration
             $table->dateTime('ThoiGianBatDau');
             $table->dateTime('ThoiGianNop')->nullable();
             $table->enum('TrangThai', ['DangLam', 'DaNop', 'ChamDiem'])->default('DangLam');
+            $table->integer('SoLanViPham')->default(0); // Số lần vi phạm (gian lận)
             $table->char('MaHS', 10);
             $table->char('MaDe', 10);
             $table->timestamps();

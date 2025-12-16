@@ -62,4 +62,42 @@ class CauHoi extends Model
         ->withPivot('ThuTu')  // Lấy thêm cột ThuTu từ bảng trung gian
         ->withTimestamps();
     }
+
+    // ============================================
+    // METHODS THEO BIỂU ĐỒ LỚP
+    // ============================================
+
+    /**
+     * + HienThiCauHoi()
+     */
+    public function hienThiCauHoi()
+    {
+        return [
+            'ma_cau_hoi' => $this->MaCH,
+            'noi_dung' => $this->NoiDung,
+            'dap_an_a' => $this->DapAnA,
+            'dap_an_b' => $this->DapAnB,
+            'dap_an_c' => $this->DapAnC,
+            'dap_an_d' => $this->DapAnD,
+            'do_kho' => $this->DoKho,
+            // Không hiển thị đáp án đúng khi đang làm bài
+        ];
+    }
+
+    /**
+     * + CapNhatCauHoi($data)
+     */
+    public function capNhatCauHoi($data)
+    {
+        $this->update($data);
+        return $this;
+    }
+
+    /**
+     * + KiemTraDapAn($traLoi)
+     */
+    public function kiemTraDapAn($traLoi)
+    {
+        return $this->DapAn === $traLoi;
+    }
 }
